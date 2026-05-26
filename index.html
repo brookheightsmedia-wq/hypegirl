@@ -290,23 +290,45 @@ function loadHistory() {
   var el = document.getElementById('messages');
   el.innerHTML = '';
   chatHistory = [];
-  db.collection('users').doc(user.uid).collection('messages')
-    .orderBy('createdAt').limitToLast(20).get()
-    .then(function(snap) {
-      if (snap.empty) {
-        addBubble("Heyyy " + profile.name + "! 💕 So glad you're here bestie — tell me everything! 👀", 'hype', false);
+  if (window.msgListener) { window.msgListener(); window.msgListener = null; }
+  var initialLoad = true;
+  var knownIds = {};
+
+  window.msgListener = db.collection('users').doc(user.uid).collection('messages')
+    .orderBy('createdAt').limitToLast(50)
+    .onSnapshot(function(snap) {
+      if (initialLoad) {
+        initialLoad = false;
+        if (snap.empty) {
+          addBubble("Heyyy " + profile.name + "! 💕 So glad you're here bestie — tell me everything! 👀", 'hype', false);
+        } else {
+          snap.forEach(function(doc) {
+            knownIds[doc.id] = true;
+            var d = doc.data();
+            var who = d.sender === 'child' ? 'child' : (d.sender === 'stall' ? 'stall' : 'hype');
+            addBubble(d.text, who, false);
+            if (d.sender === 'child') chatHistory.push({ role: 'user', content: d.text });
+            else chatHistory.push({ role: 'assistant', content: d.text });
+          });
+        }
       } else {
-        snap.forEach(function(doc) {
-          var d = doc.data();
-          var who = d.sender === 'child' ? 'child' : 'hype';
-          addBubble(d.text, who, false);
-          chatHistory.push({ role: d.sender === 'child' ? 'user' : 'assistant', content: d.text });
+        snap.docChanges().forEach(function(change) {
+          if (change.type === 'added' && !knownIds[change.doc.id]) {
+            knownIds[change.doc.id] = true;
+            var d = change.doc.data();
+            if (d.sender === 'hypeGirl') {
+              addBubble(d.text, 'hype', true);
+              chatHistory.push({ role: 'assistant', content: d.text });
+            }
+          }
         });
       }
-    }).catch(function() {
+    }, function(e) {
+      console.error('msgListener error:', e.message);
       addBubble("Heyyy " + profile.name + "! 💕 Tell me everything! 👀", 'hype', false);
     });
 }
+
 
 function saveMsg(text, sender, cls) {
   db.collection('users').doc(user.uid).collection('messages').add({

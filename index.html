@@ -598,15 +598,16 @@ function loadHistory() {
           });
         }
       } else {
-        snap.docs.forEach(function(doc) {
-          if (!knownIds[doc.id]) {
-            knownIds[doc.id] = true;
-            var d = doc.data();
-            if (!d.text) return;
-            if (d.sender === 'hypeGirl') {
-              addBubble(d.text, 'hype', true);
-              chatHistory.push({ role: 'assistant', content: d.text });
-            }
+        snap.docChanges().forEach(function(change) {
+          if (change.type !== 'added') return;
+          var doc = change.doc;
+          if (knownIds[doc.id]) return;
+          knownIds[doc.id] = true;
+          var d = doc.data();
+          if (!d.text) return;
+          if (d.sender === 'hypeGirl' && !locallyShownIds[doc.id]) {
+            addBubble(d.text, 'hype', true);
+            chatHistory.push({ role: 'assistant', content: d.text });
           }
         });
       }
@@ -884,6 +885,7 @@ function sendMsg() {
         text: reply, sender: 'hypeGirl', classification: 'GREEN',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(ref) {
+        locallyShownIds[ref.id] = true;
         if (window.msgListenerKnownIds) window.msgListenerKnownIds[ref.id] = true;
       }).catch(function(e) { console.log('save hypeGirl err', e); });
     }).catch(function(e) {

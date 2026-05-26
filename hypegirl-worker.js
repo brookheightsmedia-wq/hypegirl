@@ -42,7 +42,12 @@ export default {
           })
         });
         const data = await res.json();
-        const classification = data.content[0].text.trim().toUpperCase();
+        if (!data.content || !data.content[0]) {
+          return new Response(JSON.stringify({ classification: 'GREEN' }), { headers: corsHeaders });
+        }
+        const rawText = data.content[0].text.trim().toUpperCase();
+        const match = rawText.match(/\b(RED|AMBER|GREEN)\b/);
+        const classification = match ? match[1] : 'GREEN';
         return new Response(JSON.stringify({ classification }), { headers: corsHeaders });
       }
 

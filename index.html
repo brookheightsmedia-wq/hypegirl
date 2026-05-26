@@ -316,7 +316,7 @@ function loadHistory() {
           if (change.type === 'added' && !knownIds[change.doc.id]) {
             knownIds[change.doc.id] = true;
             var d = change.doc.data();
-            if (d.sender === 'hypeGirl') {
+            if (d.sender === 'hypeGirl' || d.sender === 'hype') {
               addBubble(d.text, 'hype', true);
               chatHistory.push({ role: 'assistant', content: d.text });
             }
@@ -474,7 +474,6 @@ function sendMsg() {
   document.getElementById('msg-in').value = '';
   addBubble(text, 'child');
   chatHistory.push({ role: 'user', content: text });
-  saveMsg(text, 'child', 'PENDING');
   setLoading(true);
 
   // Step 1: Classify
@@ -487,22 +486,27 @@ function sendMsg() {
 
     if (cls === 'RED') {
       setLoading(false);
-      addBubble(getStall(), 'stall');
+      var redStall = getStall();
+      addBubble(redStall, 'stall');
       document.getElementById('red-banner').style.display = 'block';
       saveMsg(text, 'child', 'RED');
+      saveMsg(redStall, 'stall', 'RED');
       sendToQueue(text, 'RED');
       return;
     }
 
     if (cls === 'AMBER') {
       setLoading(false);
-      addBubble(getStall(), 'stall');
+      var amberStall = getStall();
+      addBubble(amberStall, 'stall');
       saveMsg(text, 'child', 'AMBER');
+      saveMsg(amberStall, 'stall', 'AMBER');
       sendToQueue(text, 'AMBER');
       return;
     }
 
     // GREEN - get response
+    saveMsg(text, 'child', 'GREEN');
     fetch(WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

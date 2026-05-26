@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Hype Girl 💅</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#ffe0f0,#f0d0ff);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+#app{width:100%;max-width:420px;height:92vh;max-height:820px;background:#fff8fc;border-radius:32px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(200,50,150,.2);border:1px solid #ffd6eb}
+
+/* AUTH */
+#auth-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;gap:14px}
+.logo{font-size:52px}
+#auth-screen h1{font-size:26px;font-weight:900;color:#cc2266}
+#auth-screen p{font-size:13px;color:#aa6688;font-weight:600;text-align:center}
+.role-tabs{display:flex;gap:8px;width:100%}
+.role-tab{flex:1;padding:10px;border-radius:20px;border:2px solid #ffb3d9;background:#fff8fc;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#cc2266;cursor:pointer;transition:all .15s;text-align:center}
+.role-tab.active{background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff;border-color:transparent}
+.ai{width:100%;border:2px solid #ffb3d9;border-radius:24px;padding:12px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;color:#440022;background:#fff8fc;transition:border-color .2s}
+.ai:focus{border-color:#ff3d8a}
+.ai::placeholder{color:#ffaacc;font-weight:500}
+.ab{width:100%;padding:13px;border-radius:24px;border:none;background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:transform .15s;box-shadow:0 4px 14px rgba(200,50,150,.35)}
+.ab:hover{transform:scale(1.02)}
+.at{font-size:13px;color:#cc2266;font-weight:700;cursor:pointer;text-decoration:underline}
+#auth-err{font-size:12px;color:#cc2266;font-weight:700;text-align:center;display:none}
+#parent-extra{display:none;width:100%}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#ff3d8a,#c040ff);padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.hdr-av{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid rgba(255,255,255,.5);flex-shrink:0}
+.hdr-txt{flex:1}
+.hdr-txt h1{color:#fff;font-size:17px;font-weight:900;line-height:1.2}
+.hdr-txt p{color:rgba(255,255,255,.85);font-size:11px;font-weight:700}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.online{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 8px}
+.online-dot{width:7px;height:7px;background:#7fff7f;border-radius:50%;animation:pulse 2s infinite}
+.online span{color:#fff;font-size:10px;font-weight:700}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.so-btn{background:rgba(255,255,255,.2);border:none;color:#fff;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer}
+
+/* COUNTER */
+#counter{background:#fff0f7;border-bottom:1px solid #ffd6eb;padding:5px 16px;text-align:center;font-size:11px;font-weight:800;color:#e0407a;flex-shrink:0}
+
+/* MESSAGES */
+#messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+#messages::-webkit-scrollbar{width:3px}
+#messages::-webkit-scrollbar-thumb{background:#ffb3d9;border-radius:4px}
+.bw{display:flex;flex-direction:column;max-width:82%;animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(.8) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.bw.hype{align-self:flex-start;align-items:flex-start}
+.bw.child{align-self:flex-end;align-items:flex-end}
+.bb{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.55;font-weight:600}
+.bb.hype{background:linear-gradient(135deg,#ff3d8a,#ff70aa);color:#fff;border-bottom-left-radius:4px}
+.bb.child{background:linear-gradient(135deg,#8833ff,#c040ff);color:#fff;border-bottom-right-radius:4px}
+.bb.stall{background:linear-gradient(135deg,#ff9900,#ffcc00);color:#fff;border-bottom-left-radius:4px}
+.bt{font-size:10px;color:#cc88aa;font-weight:600;margin-top:3px;padding:0 4px}
+
+/* TYPING */
+#typing{display:none;align-items:center;gap:5px;padding:11px 15px;background:linear-gradient(135deg,#ff3d8a,#ff70aa);border-radius:18px;border-bottom-left-radius:4px;width:fit-content;margin:0 14px 4px;flex-shrink:0}
+#typing span{width:7px;height:7px;background:rgba(255,255,255,.9);border-radius:50%;animation:tb 1.4s infinite ease-in-out}
+#typing span:nth-child(2){animation-delay:.2s}
+#typing span:nth-child(3){animation-delay:.4s}
+@keyframes tb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+
+/* RED BANNER */
+#red-banner{display:none;background:#ffe0e0;border-top:2px solid #ff6666;padding:8px 16px;font-size:12px;font-weight:700;color:#cc0000;text-align:center;flex-shrink:0}
+
+/* ERROR */
+#err-bar{display:none;background:#ffe0ef;color:#cc2266;font-size:12px;font-weight:700;padding:7px 16px;text-align:center;flex-shrink:0}
+
+/* QUICK TABS */
+#qtabs{display:flex;gap:6px;padding:8px 12px 0;background:#fff;flex-shrink:0}
+.qt{flex:1;padding:6px 4px;border-radius:20px;border:1.5px solid #ffb3d9;background:#fff8fc;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#e0407a;cursor:pointer;transition:all .15s;text-align:center}
+.qt:hover{background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff;border-color:transparent}
+
+/* INPUT */
+#input-area{padding:10px 12px;background:#fff;border-top:1px solid #ffd6eb;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#msg-in{flex:1;border:2px solid #ffb3d9;border-radius:24px;padding:10px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;color:#440022;background:#fff8fc;transition:border-color .2s,box-shadow .2s;min-width:0}
+#msg-in:focus{border-color:#ff3d8a;box-shadow:0 0 0 3px rgba(255,61,138,.12)}
+#msg-in::placeholder{color:#ffaacc;font-weight:500}
+#send-btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ff3d8a,#c040ff);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;flex-shrink:0;box-shadow:0 4px 12px rgba(200,50,150,.35)}
+#send-btn:hover{transform:scale(1.08)}
+#send-btn:active{transform:scale(.94)}
+#send-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+#send-btn svg{width:18px;height:18px;fill:#fff;margin-left:2px}
+
+/* PARENT */
+#parent-screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+#pq{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.qcard{background:#fff;border:1.5px solid #ffd6eb;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.qcard.red{border-color:#ff6666;background:#fff8f8}
+.qbadge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:12px;align-self:flex-start;color:#fff}
+.qmsg{font-size:14px;font-weight:600;color:#440022;font-style:italic}
+.qtime{font-size:11px;color:#aa6688;font-weight:600}
+.qacts{display:flex;gap:8px}
+.qbtn{flex:1;padding:8px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:transform .15s}
+.qbtn:active{transform:scale(.96)}
+.qbtn.respond{background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff}
+.qbtn.dismiss{background:#f0e0ef;color:#883366}
+#no-q{text-align:center;color:#cc88aa;font-weight:700;font-size:14px;padding:40px 0}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- AUTH -->
+  <div id="auth-screen">
+    <div class="logo">💅</div>
+    <h1>Hype Girl</h1>
+    <p>Your AI Bestie for tween &amp; teen girls</p>
+    <div class="role-tabs">
+      <button class="role-tab active" id="tab-child" onclick="setRole('child')">I'm a Girl ✨</button>
+      <button class="role-tab" id="tab-parent" onclick="setRole('parent')">I'm a Parent 👨‍👧</button>
+    </div>
+    <input class="ai" type="text" id="a-name" placeholder="Your name" />
+    <input class="ai" type="email" id="a-email" placeholder="Email address" />
+    <input class="ai" type="password" id="a-pass" placeholder="Password" />
+    <input class="ai" type="text" id="a-child" placeholder="Your child's name" style="display:none" />
+    <div id="auth-err"></div>
+    <button class="ab" id="a-btn" onclick="handleAuth()">Sign Up &amp; Start Chatting 💕</button>
+    <span class="at" id="a-tog" onclick="toggleMode()">Already have an account? Sign in</span>
+  </div>
+
+  <!-- CHILD CHAT -->
+  <div id="chat-screen" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+    <div class="hdr">
+      <div class="hdr-av">💅</div>
+      <div class="hdr-txt"><h1>Hype Girl</h1><p id="sub">Your AI Bestie</p></div>
+      <div class="hdr-right">
+        <div class="online"><div class="online-dot"></div><span>Active</span></div>
+        <button class="so-btn" onclick="doSignOut()">Sign out</button>
+      </div>
+    </div>
+    <div id="counter">✨ Free preview — unlimited messages</div>
+    <div id="messages"></div>
+    <div id="typing"><span></span><span></span><span></span></div>
+    <div id="red-banner">🚨 You matter SO much bestie. If things feel really heavy, please call or text 988 💕</div>
+    <div id="err-bar">Couldn't reach Hype Girl right now — try again! 💔</div>
+    <div id="qtabs">
+      <button class="qt" onclick="qs('Give me my daily hype! 💅')">Daily Hype 💅</button>
+      <button class="qt" onclick="qs('I need some advice')">Advice ✨</button>
+      <button class="qt" onclick="qs('Hype me up!')">Hype Me 🔥</button>
+    </div>
+    <div id="input-area">
+      <input id="msg-in" type="text" placeholder="Tell me everything..." maxlength="500" autocomplete="off" />
+      <button id="send-btn" onclick="sendMsg()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- PARENT -->
+  <div id="parent-screen">
+    <div class="hdr">
+      <div class="hdr-av">👨‍👧</div>
+      <div class="hdr-txt"><h1>Hype HQ</h1><p id="p-sub">Parent Dashboard</p></div>
+      <button class="so-btn" onclick="doSignOut()">Sign out</button>
+    </div>
+    <div id="pq"><div id="no-q">Loading... 💕</div></div>
+  </div>
+
+</div>
+
+<script>
+// CONFIG
+var FB_CONFIG = {
+  apiKey: "AIzaSyCkLVKtT_G9oi_1yaJXGNNfgmACwFOdRR4",
+  authDomain: "hypegirl-ff832.firebaseapp.com",
+  projectId: "hypegirl-ff832",
+  storageBucket: "hypegirl-ff832.firebasestorage.app",
+  messagingSenderId: "870482549513",
+  appId: "1:870482549513:web:7d4e4d231b54a69f3191d8"
+};
+var WORKER = 'https://hypegirl-api.brookheightsmedia.workers.dev';
+var SYSTEM = "You are Hype Girl — a fun, confident, supportive AI best friend for tween and teen girls. You use current slang, you're never mean, you hype them up. Short sentences. Real texting energy. Natural emoji use. Never formal. Never lecture. Always on her side. Keep replies under 3-4 sentences.";
+var STALLS = [
+  "Oof bestie, ok that one's actually got me thinking 👀 give me a sec to really think about this one properly because you deserve a real answer",
+  "ok not me needing a MINUTE for this one — this is actually kind of a big deal and I want to say the right thing. hang tight 💕",
+  "bestie I hear you and I am NOT ignoring you I just want to actually think about this the right way because you matter ok? gimme a bit",
+  "no because this one's important and I refuse to just throw a quick answer at you. let me actually think 💅",
+  "ok I love that you told me this. I'm sitting with it for a sec because some things deserve more than a fast reply you know?"
+];
+
+// FIREBASE
+firebase.initializeApp(FB_CONFIG);
+var auth = firebase.auth();
+var db = firebase.firestore();
+
+// STATE
+var user = null;
+var profile = null;
+var role = null;
+var history = [];
+var authMode = 'signup';
+var selRole = 'child';
+var lastStall = -1;
+var qListener = null;
+
+// AUTH UI
+function setRole(r) {
+  selRole = r;
+  document.getElementById('tab-child').className = 'role-tab' + (r === 'child' ? ' active' : '');
+  document.getElementById('tab-parent').className = 'role-tab' + (r === 'parent' ? ' active' : '');
+  document.getElementById('a-child').style.display = r === 'parent' ? 'block' : 'none';
+  document.getElementById('a-name').style.display = authMode === 'signup' ? 'block' : 'none';
+}
+
+function toggleMode() {
+  authMode = authMode === 'signup' ? 'signin' : 'signup';
+  document.getElementById('a-btn').textContent = authMode === 'signup' ? 'Sign Up & Start Chatting 💕' : 'Sign In 💕';
+  document.getElementById('a-tog').textContent = authMode === 'signup' ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
+  document.getElementById('a-name').style.display = authMode === 'signup' ? 'block' : 'none';
+  document.getElementById('a-child').style.display = (authMode === 'signup' && selRole === 'parent') ? 'block' : 'none';
+}
+
+function showErr(msg) {
+  var el = document.getElementById('auth-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.color = '#cc2266';
+  el.style.fontSize = '12px';
+  el.style.fontWeight = '700';
+}
+
+function handleAuth() {
+  var email = document.getElementById('a-email').value.trim();
+  var pass = document.getElementById('a-pass').value.trim();
+  var name = document.getElementById('a-name').value.trim();
+  document.getElementById('auth-err').style.display = 'none';
+  if (!email || !pass) { showErr('Email and password required'); return; }
+  if (authMode === 'signup' && !name) { showErr('Name required'); return; }
+  if (authMode === 'signup') {
+    auth.createUserWithEmailAndPassword(email, pass).then(function(cred) {
+      var data = { name: name, email: email, role: selRole, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+      if (selRole === 'parent') {
+        data.childName = document.getElementById('a-child').value.trim() || 'My Child';
+      }
+      db.collection('users').doc(cred.user.uid).set(data);
+    }).catch(function(e) { showErr(e.message); });
+  } else {
+    auth.signInWithEmailAndPassword(email, pass).catch(function(e) { showErr(e.message); });
+  }
+}
+
+// AUTH STATE
+auth.onAuthStateChanged(function(u) {
+  if (u) {
+    user = u;
+    db.collection('users').doc(u.uid).get().then(function(doc) {
+      if (doc.exists) {
+        profile = doc.data();
+        role = profile.role;
+        showApp();
+      }
+    });
+  } else {
+    user = null; profile = null; role = null;
+    if (qListener) { qListener(); qListener = null; }
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('chat-screen').style.display = 'none';
+    document.getElementById('parent-screen').style.display = 'none';
+  }
+});
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  if (role === 'parent') {
+    document.getElementById('parent-screen').style.display = 'flex';
+    document.getElementById('chat-screen').style.display = 'none';
+    document.getElementById('p-sub').textContent = 'Hey ' + profile.name + '! 👋';
+    loadQueue();
+  } else {
+    document.getElementById('chat-screen').style.display = 'flex';
+    document.getElementById('parent-screen').style.display = 'none';
+    document.getElementById('sub').textContent = 'Hey ' + profile.name + '! 💕';
+    loadHistory();
+    document.getElementById('msg-in').focus();
+  }
+}
+
+function doSignOut() { auth.signOut(); }
+
+// CHAT HISTORY
+function loadHistory() {
+  var el = document.getElementById('messages');
+  el.innerHTML = '';
+  history = [];
+  db.collection('users').doc(user.uid).collection('messages')
+    .orderBy('createdAt').limitToLast(20).get()
+    .then(function(snap) {
+      if (snap.empty) {
+        addBubble("Heyyy " + profile.name + "! 💕 So glad you're here bestie — tell me everything! 👀", 'hype', false);
+      } else {
+        snap.forEach(function(doc) {
+          var d = doc.data();
+          var who = d.sender === 'child' ? 'child' : 'hype';
+          addBubble(d.text, who, false);
+          history.push({ role: d.sender === 'child' ? 'user' : 'assistant', content: d.text });
+        });
+      }
+    }).catch(function() {
+      addBubble("Heyyy " + profile.name + "! 💕 Tell me everything! 👀", 'hype', false);
+    });
+}
+
+function saveMsg(text, sender, cls) {
+  db.collection('users').doc(user.uid).collection('messages').add({
+    text: text, sender: sender, classification: cls || 'GREEN',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(function(e) { console.log('save err', e); });
+}
+
+// PARENT QUEUE
+function loadQueue() {
+  var qEl = document.getElementById('pq');
+  qEl.innerHTML = '<div id="no-q">Loading... 💕</div>';
+  qListener = db.collection('parentQueue')
+    .where('childName', '==', profile.childName)
+    .onSnapshot(function(snap) {
+      var pending = [];
+      snap.forEach(function(doc) {
+        if (doc.data().status === 'pending') pending.push(doc);
+      });
+      qEl.innerHTML = '';
+      if (pending.length === 0) {
+        qEl.innerHTML = '<div id="no-q">No messages to review right now 🎉<br><br>All clear! 💕</div>';
+        return;
+      }
+      pending.forEach(function(doc) {
+        var d = doc.data();
+        var card = document.createElement('div');
+        card.className = d.classification === 'RED' ? 'qcard red' : 'qcard';
+        var bc = d.classification === 'RED' ? '#ff3d3d' : '#ff9900';
+        var bt = d.classification === 'RED' ? '🚨 URGENT' : '⚠️ Review';
+        var msgSafe = (d.message || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center">'
+          + '<span class="qbadge" style="background:' + bc + '">' + bt + '</span>'
+          + '<span class="qtime">' + (d.childName || '') + '</span>'
+          + '</div>'
+          + '<div class="qmsg">&ldquo;' + (d.message || '') + '&rdquo;</div>'
+          + '<div class="qacts">'
+          + '<button class="qbtn dismiss" onclick="dismissItem(\'' + doc.id + '\')">Dismiss</button>'
+          + '<button class="qbtn respond" onclick="respondItem(\'' + doc.id + '\',\'' + (d.childId || '') + '\',\'' + msgSafe + '\')">Respond as Hype Girl</button>'
+          + '</div>';
+        qEl.appendChild(card);
+      });
+    }, function(err) {
+      console.log('Queue error:', err);
+      qEl.innerHTML = '<div id="no-q">Error loading queue: ' + err.message + '</div>';
+    });
+}
+
+function dismissItem(id) {
+  db.collection('parentQueue').doc(id).update({ status: 'dismissed' });
+}
+
+function respondItem(id, childId, origMsg) {
+  var reply = prompt('Write your response (Hype Girl will rewrite it in her voice):');
+  if (!reply) return;
+  fetch(WORKER, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'chat',
+      system: "You are the voice of Hype Girl. A parent wrote a response to their daughter. Rewrite it in Hype Girl's voice — same meaning, but sound like a best friend not a parent. Use teen slang, short sentences, natural emojis.",
+      messages: [{ role: 'user', content: 'Parent response: "' + reply + '". Original message: "' + origMsg + '". Rewrite as Hype Girl.' }]
+    })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    var translated = data.content[0].text;
+    db.collection('users').doc(childId).collection('messages').add({
+      text: translated, sender: 'hypeGirl', classification: 'GREEN',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    db.collection('parentQueue').doc(id).update({ status: 'responded' });
+    alert('Sent to your child as Hype Girl! 💕');
+  }).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+// CHAT
+function getTime() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function addBubble(text, who, animate) {
+  var el = document.getElementById('messages');
+  var wrap = document.createElement('div');
+  wrap.className = 'bw ' + who;
+  if (animate === false) wrap.style.animation = 'none';
+  var b = document.createElement('div');
+  b.className = 'bb ' + who;
+  b.innerHTML = text.replace(/\n/g, '<br>');
+  var t = document.createElement('div');
+  t.className = 'bt';
+  t.textContent = getTime();
+  wrap.appendChild(b);
+  wrap.appendChild(t);
+  el.appendChild(wrap);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setLoading(on) {
+  document.getElementById('typing').style.display = on ? 'flex' : 'none';
+  document.getElementById('send-btn').disabled = on;
+  if (on) document.getElementById('messages').scrollTop = 99999;
+}
+
+function getStall() {
+  var i;
+  do { i = Math.floor(Math.random() * STALLS.length); } while (i === lastStall);
+  lastStall = i;
+  return STALLS[i];
+}
+
+function sendToQueue(msg, cls) {
+  db.collection('users').where('role', '==', 'parent').where('childName', '==', profile.name).get()
+    .then(function(snap) {
+      var parentId = snap.empty ? 'unlinked' : snap.docs[0].id;
+      var parentEmail = snap.empty ? 'brookheightsmedia@gmail.com' : snap.docs[0].data().email;
+      db.collection('parentQueue').add({
+        childId: user.uid,
+        childName: profile.name,
+        parentId: parentId,
+        message: msg,
+        classification: cls,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      fetch(WORKER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'alert',
+          childName: profile.name,
+          parentEmail: parentEmail,
+          message: msg,
+          classification: cls
+        })
+      }).catch(function(e) { console.log('alert err', e); });
+    }).catch(function(e) { console.log('queue err', e); });
+}
+
+function sendMsg() {
+  var text = document.getElementById('msg-in').value.trim();
+  if (!text) return;
+  document.getElementById('err-bar').style.display = 'none';
+  document.getElementById('red-banner').style.display = 'none';
+  document.getElementById('msg-in').value = '';
+  addBubble(text, 'child');
+  history.push({ role: 'user', content: text });
+  saveMsg(text, 'child', 'PENDING');
+  setLoading(true);
+
+  // Step 1: Classify
+  fetch(WORKER, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'classify', message: text })
+  }).then(function(r) { return r.json(); }).then(function(cd) {
+    var cls = (cd.classification || 'GREEN').toUpperCase().trim();
+
+    if (cls === 'RED') {
+      setLoading(false);
+      addBubble(getStall(), 'stall');
+      document.getElementById('red-banner').style.display = 'block';
+      saveMsg(text, 'child', 'RED');
+      sendToQueue(text, 'RED');
+      return;
+    }
+
+    if (cls === 'AMBER') {
+      setLoading(false);
+      addBubble(getStall(), 'stall');
+      saveMsg(text, 'child', 'AMBER');
+      sendToQueue(text, 'AMBER');
+      return;
+    }
+
+    // GREEN - get response
+    fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'chat', system: SYSTEM, messages: history })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.error) throw new Error(data.error.message);
+      var reply = data.content[0].text;
+      history.push({ role: 'assistant', content: reply });
+      setLoading(false);
+      addBubble(reply, 'hype');
+      saveMsg(reply, 'hypeGirl', 'GREEN');
+    }).catch(function(e) {
+      setLoading(false);
+      document.getElementById('err-bar').style.display = 'block';
+      console.log('chat err', e);
+    });
+
+  }).catch(function(e) {
+    setLoading(false);
+    document.getElementById('err-bar').style.display = 'block';
+    console.log('classify err', e);
+  });
+
+  document.getElementById('msg-in').focus();
+}
+
+function qs(msg) { document.getElementById('msg-in').value = msg; sendMsg(); }
+
+document.getElementById('msg-in').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+</script>
+</body>
+</html>

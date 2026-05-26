@@ -574,46 +574,45 @@ function loadHistory() {
   el.innerHTML = '';
   chatHistory = [];
   if (window.msgListener) { window.msgListener(); window.msgListener = null; }
-  var knownIds = {};
-  var loaded = false;
-  window.msgListenerKnownIds = knownIds;
-  window.msgListener = db.collection('users').doc(user.uid).collection('messages')
+
+  // Load history once via get() — no listener for initial render
+  db.collection('users').doc(user.uid).collection('messages')
     .orderBy('createdAt').limitToLast(50)
-    .onSnapshot(function(snap) {
-      if (!loaded) {
-        loaded = true;
-        el.innerHTML = '';
-        chatHistory = [];
-        if (snap.empty) {
-          addBubble("Heyyy " + profile.name + "! 💕 So glad you're here bestie — tell me everything! 👀", 'hype', false);
-        } else {
-          snap.docs.forEach(function(doc) {
-            knownIds[doc.id] = true;
-            var d = doc.data();
-            if (!d.text) return;
-            var who = d.sender === 'child' ? 'child' : (d.sender === 'stall' ? 'stall' : 'hype');
-            addBubble(d.text, who, false);
-            if (d.sender === 'child') chatHistory.push({ role: 'user', content: d.text });
-            else if (d.sender !== 'stall') chatHistory.push({ role: 'assistant', content: d.text });
-          });
-        }
+    .get().then(function(snap) {
+      el.innerHTML = '';
+      chatHistory = [];
+      var lastId = null;
+      if (snap.empty) {
+        addBubble("Heyyy " + profile.name + "! 💕 So glad you're here bestie — tell me everything! 👀", 'hype', false);
       } else {
-        snap.docChanges().forEach(function(change) {
-          if (change.type !== 'added') return;
-          var doc = change.doc;
-          if (knownIds[doc.id]) return;
-          knownIds[doc.id] = true;
+        snap.docs.forEach(function(doc) {
+          lastId = doc.id;
           var d = doc.data();
           if (!d.text) return;
-          if (d.sender === 'hypeGirl') {
-            addBubble(d.text, 'hype', true);
-            chatHistory.push({ role: 'assistant', content: d.text });
-          }
+          var who = d.sender === 'child' ? 'child' : (d.sender === 'stall' ? 'stall' : 'hype');
+          addBubble(d.text, who, false);
+          if (d.sender === 'child') chatHistory.push({ role: 'user', content: d.text });
+          else if (d.sender !== 'stall') chatHistory.push({ role: 'assistant', content: d.text });
         });
       }
-    }, function(e) {
-      console.error('msgListener error:', e.message);
-      if (!loaded) addBubble("Heyyy " + profile.name + "! 💕 Tell me everything! 👀", 'hype', false);
+
+      // Watch ONLY for parent-originated messages (source='parent')
+      // No compound index needed — single field query
+      window.msgListener = db.collection('users').doc(user.uid).collection('messages')
+        .where('source', '==', 'parent')
+        .onSnapshot(function(snap) {
+          snap.docChanges().forEach(function(change) {
+            if (change.type !== 'added') return;
+            var d = change.doc.data();
+            if (!d.text) return;
+            addBubble(d.text, 'hype', true);
+            chatHistory.push({ role: 'assistant', content: d.text });
+          });
+        }, function(e) { console.error('parent listener err:', e.message); });
+
+    }).catch(function(e) {
+      console.error('loadHistory err:', e.message);
+      addBubble("Heyyy " + profile.name + "! 💕 Tell me everything! 👀", 'hype', false);
     });
 }
 
@@ -752,7 +751,7 @@ function submitRespond(origMsg) {
   }).then(function(r) { return r.json(); }).then(function(data) {
     var translated = data.content[0].text;
     db.collection('users').doc(currentRespondChildId).collection('messages').add({
-      text: translated, sender: 'hypeGirl', classification: 'GREEN',
+      text: translated, sender: 'hypeGirl', source: 'parent', classification: 'GREEN',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     db.collection('parentQueue').doc(currentRespondId).update({ status: 'responded' });

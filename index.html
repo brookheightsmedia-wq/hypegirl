@@ -58,6 +58,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#ffe0f0,#
 .bb.hype{background:linear-gradient(135deg,#ff3d8a,#ff70aa);color:#fff;border-bottom-left-radius:4px}
 .bb.child{background:linear-gradient(135deg,#8833ff,#c040ff);color:#fff;border-bottom-right-radius:4px}
 .bb.stall{background:linear-gradient(135deg,#ff9900,#ffcc00);color:#fff;border-bottom-left-radius:4px}
+.bw.stall{align-self:flex-start;align-items:flex-start}
 .bt{font-size:10px;color:#cc88aa;font-weight:600;margin-top:3px;padding:0 4px}
 
 /* TYPING */
@@ -298,7 +299,7 @@ function loadHistory() {
       } else {
         snap.forEach(function(doc) {
           var d = doc.data();
-          var who = d.sender === 'child' ? 'child' : 'hype';
+          var who = d.sender === 'child' ? 'child' : (d.sender === 'stall' ? 'stall' : 'hype');
           addBubble(d.text, who, false);
           history.push({ role: d.sender === 'child' ? 'user' : 'assistant', content: d.text });
         });
@@ -417,31 +418,33 @@ function getStall() {
 }
 
 function sendToQueue(msg, cls) {
+  // Save to queue immediately — independent of parent lookup
+  db.collection('parentQueue').add({
+    childId: user.uid,
+    childName: profile.name,
+    parentId: 'unlinked',
+    message: msg,
+    classification: cls,
+    status: 'pending',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(function(e) { console.log('queue save err', e); });
+
+  // Look up parent email for the alert (best-effort; falls back to default)
   db.collection('users').where('role', '==', 'parent').where('childName', '==', profile.name).get()
     .then(function(snap) {
-      var parentId = snap.empty ? 'unlinked' : snap.docs[0].id;
       var parentEmail = snap.empty ? 'brookheightsmedia@gmail.com' : snap.docs[0].data().email;
-      db.collection('parentQueue').add({
-        childId: user.uid,
-        childName: profile.name,
-        parentId: parentId,
-        message: msg,
-        classification: cls,
-        status: 'pending',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
       fetch(WORKER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'alert',
-          childName: profile.name,
-          parentEmail: parentEmail,
-          message: msg,
-          classification: cls
-        })
+        body: JSON.stringify({ action: 'alert', childName: profile.name, parentEmail: parentEmail, message: msg, classification: cls })
       }).catch(function(e) { console.log('alert err', e); });
-    }).catch(function(e) { console.log('queue err', e); });
+    }).catch(function() {
+      fetch(WORKER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'alert', childName: profile.name, parentEmail: 'brookheightsmedia@gmail.com', message: msg, classification: cls })
+      }).catch(function(e) { console.log('alert err', e); });
+    });
 }
 
 function sendMsg() {
@@ -461,21 +464,29 @@ function sendMsg() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'classify', message: text })
   }).then(function(r) { return r.json(); }).then(function(cd) {
-    var cls = (cd.classification || 'GREEN').toUpperCase().trim();
+    var clsRaw = (cd.classification || 'GREEN').toUpperCase();
+    var clsMatch = clsRaw.match(/\b(RED|AMBER|GREEN)\b/);
+    var cls = clsMatch ? clsMatch[1] : 'GREEN';
 
     if (cls === 'RED') {
+      var redStall = getStall();
       setLoading(false);
-      addBubble(getStall(), 'stall');
+      addBubble(redStall, 'stall');
+      history.push({ role: 'assistant', content: redStall });
       document.getElementById('red-banner').style.display = 'block';
       saveMsg(text, 'child', 'RED');
+      saveMsg(redStall, 'stall', 'RED');
       sendToQueue(text, 'RED');
       return;
     }
 
     if (cls === 'AMBER') {
+      var amberStall = getStall();
       setLoading(false);
-      addBubble(getStall(), 'stall');
+      addBubble(amberStall, 'stall');
+      history.push({ role: 'assistant', content: amberStall });
       saveMsg(text, 'child', 'AMBER');
+      saveMsg(amberStall, 'stall', 'AMBER');
       sendToQueue(text, 'AMBER');
       return;
     }

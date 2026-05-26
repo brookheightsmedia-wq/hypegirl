@@ -630,6 +630,8 @@ function saveMsg(text, sender, cls) {
 }
 
 // PARENT QUEUE
+var pendingDocsCache = [];
+
 function loadQueue() {
   var qEl = document.getElementById('pq');
   qEl.innerHTML = '<div id="no-q">Loading... 💕</div>';
@@ -640,6 +642,7 @@ function loadQueue() {
       snap.forEach(function(doc) {
         if (doc.data().status === 'pending') pending.push(doc);
       });
+      pendingDocsCache = pending;
       qEl.innerHTML = '';
       if (pending.length === 0) {
         qEl.innerHTML = '<div id="no-q">No messages to review right now 🎉<br><br>All clear! 💕</div>';
@@ -651,14 +654,13 @@ function loadQueue() {
       banner.innerHTML = '<div class="pending-banner-txt"><h3>' + pending.length + ' Pending Message' + (pending.length > 1 ? 's' : '') + '</h3><p>Waiting for your response</p></div><div class="pending-banner-icon">📋</div>';
       qEl.appendChild(banner);
 
-      pending.forEach(function(doc) {
+      pending.forEach(function(doc, idx) {
         var d = doc.data();
         var card = document.createElement('div');
         card.className = d.classification === 'RED' ? 'qcard red' : 'qcard';
         var bc = d.classification === 'RED' ? 'linear-gradient(135deg,#ff3d3d,#ff6666)' : 'linear-gradient(135deg,#ff9900,#ffcc00)';
         var bt = d.classification === 'RED' ? '🚨 Urgent' : '⚠️ Review';
         var initial = (d.childName || 'C').charAt(0).toUpperCase();
-        var msgSafe = (d.message || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
         var timeAgo = d.createdAt ? getTimeAgo(d.createdAt.toDate ? d.createdAt.toDate() : new Date()) : '';
         card.innerHTML =
           '<div class="qcard-top">'
@@ -670,10 +672,19 @@ function loadQueue() {
           + '<div class="qcard-bottom">'
           + '<span class="qtime">🕐 ' + timeAgo + '</span>'
           + '<div style="display:flex;gap:7px">'
-          + '<button class="qbtn-dismiss" onclick="dismissItem(\'' + doc.id + '\')">Dismiss</button>'
-          + '<button class="qbtn-reply" onclick="openRespondModal(\'' + doc.id + '\',\'' + (d.childId || '') + '\',\'' + msgSafe + '\',\'' + (d.childName || '') + '\',\'' + (d.classification || 'AMBER') + '\')">✏️ Review &amp; Reply</button>'
+          + '<button class="qbtn-dismiss" data-docid="' + doc.id + '">Dismiss</button>'
+          + '<button class="qbtn-reply" data-idx="' + idx + '">✏️ Review &amp; Reply</button>'
           + '</div>'
           + '</div>';
+
+        // Attach events after building HTML so quotes in messages never break anything
+        card.querySelector('.qbtn-dismiss').addEventListener('click', function() {
+          dismissItem(doc.id);
+        });
+        card.querySelector('.qbtn-reply').addEventListener('click', function() {
+          openRespondModal(doc.id, d.childId || '', d.message || '', d.childName || '', d.classification || 'AMBER');
+        });
+
         qEl.appendChild(card);
       });
     }, function(err) {

@@ -605,7 +605,7 @@ function loadHistory() {
           knownIds[doc.id] = true;
           var d = doc.data();
           if (!d.text) return;
-          if (d.sender === 'hypeGirl' && d.source !== 'local' && !locallyShownIds[doc.id]) {
+          if (d.sender === 'hypeGirl') {
             addBubble(d.text, 'hype', true);
             chatHistory.push({ role: 'assistant', content: d.text });
           }
@@ -880,13 +880,11 @@ function sendMsg() {
       var reply = data.content[0].text;
       chatHistory.push({ role: 'assistant', content: reply });
       setLoading(false);
-      addBubble(reply, 'hype');
+      // Save to Firestore first — the onSnapshot listener will render the bubble
+      // This avoids the race condition where listener fires before we can mark the ID as known
       db.collection('users').doc(user.uid).collection('messages').add({
         text: reply, sender: 'hypeGirl', source: 'local', classification: 'GREEN',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(function(ref) {
-        locallyShownIds[ref.id] = true;
-        if (window.msgListenerKnownIds) window.msgListenerKnownIds[ref.id] = true;
       }).catch(function(e) { console.log('save hypeGirl err', e); });
     }).catch(function(e) {
       setLoading(false);

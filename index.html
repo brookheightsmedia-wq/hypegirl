@@ -496,7 +496,7 @@ function sendMsg() {
   fetch(WORKER, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'classify', message: text })
+    body: JSON.stringify({ action: 'classify', message: text, context: chatHistory.slice(-3) })
   }).then(function(r) { return r.json(); }).then(function(cd) {
     var cls = (cd.classification || 'GREEN').toUpperCase().trim();
 

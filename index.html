@@ -10,99 +10,121 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#ffe0f0,#f0d0ff);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
-#app{width:100%;max-width:420px;height:92vh;max-height:820px;background:#fff8fc;border-radius:32px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(200,50,150,.2);border:1px solid #ffd6eb}
+body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#fce4f3,#ede4ff,#fce4f3);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+#app{width:100%;max-width:420px;height:92vh;max-height:820px;background:#fff;border-radius:36px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(180,40,140,.18),0 4px 16px rgba(180,40,140,.10);border:1.5px solid #f5d0ea}
 
-/* AUTH */
-#auth-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;gap:14px}
-.logo{font-size:52px}
-#auth-screen h1{font-size:26px;font-weight:900;color:#cc2266}
-#auth-screen p{font-size:13px;color:#aa6688;font-weight:600;text-align:center}
+/* ── HERO HEADER (auth + chat) ── */
+.hero-hdr{background:linear-gradient(135deg,#ff3d8a 0%,#d63af9 60%,#a855f7 100%);padding:22px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;position:relative;overflow:hidden}
+.hero-hdr::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.13) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.hero-hdr::after{content:'✦ ✧ ✦';position:absolute;bottom:6px;right:14px;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:4px}
+.hero-logo{width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid rgba(255,255,255,.4);box-shadow:0 4px 16px rgba(0,0,0,.12);backdrop-filter:blur(4px)}
+.hero-hdr h1{color:#fff;font-size:22px;font-weight:900;letter-spacing:-.3px;margin-top:4px}
+.hero-hdr p{color:rgba(255,255,255,.82);font-size:12px;font-weight:700;letter-spacing:.2px}
+
+/* compact header for chat/parent */
+.cmp-hdr{background:linear-gradient(135deg,#ff3d8a 0%,#d63af9 60%,#a855f7 100%);padding:13px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;overflow:hidden}
+.cmp-hdr::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.10) 1px,transparent 1px);background-size:16px 16px;pointer-events:none}
+.cmp-av{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid rgba(255,255,255,.4);flex-shrink:0}
+.cmp-txt{flex:1}
+.cmp-txt h1{color:#fff;font-size:16px;font-weight:900;line-height:1.2}
+.cmp-txt p{color:rgba(255,255,255,.82);font-size:11px;font-weight:700}
+.cmp-right{display:flex;align-items:center;gap:7px}
+.online{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.18);border-radius:20px;padding:3px 9px;border:1px solid rgba(255,255,255,.2)}
+.online-dot{width:6px;height:6px;background:#7fff7f;border-radius:50%;animation:pulse 2s infinite;box-shadow:0 0 4px #7fff7f}
+.online span{color:#fff;font-size:10px;font-weight:800}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.so-btn{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;padding:4px 11px;border-radius:20px;cursor:pointer;transition:background .15s}
+.so-btn:hover{background:rgba(255,255,255,.28)}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.auth-hero{background:linear-gradient(135deg,#ff3d8a 0%,#d63af9 60%,#a855f7 100%);padding:28px 24px 24px;display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;position:relative;overflow:hidden}
+.auth-hero::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.13) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.auth-logo{width:64px;height:64px;border-radius:20px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:32px;border:2px solid rgba(255,255,255,.45);box-shadow:0 6px 20px rgba(0,0,0,.14)}
+.auth-hero h1{color:#fff;font-size:24px;font-weight:900;margin-top:6px}
+.auth-hero p{color:rgba(255,255,255,.85);font-size:12px;font-weight:700;text-align:center}
+.auth-body{flex:1;overflow-y:auto;padding:20px 20px 16px;display:flex;flex-direction:column;gap:11px;background:#fff}
 .role-tabs{display:flex;gap:8px;width:100%}
-.role-tab{flex:1;padding:10px;border-radius:20px;border:2px solid #ffb3d9;background:#fff8fc;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#cc2266;cursor:pointer;transition:all .15s;text-align:center}
-.role-tab.active{background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff;border-color:transparent}
-.ai{width:100%;border:2px solid #ffb3d9;border-radius:24px;padding:12px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;color:#440022;background:#fff8fc;transition:border-color .2s}
-.ai:focus{border-color:#ff3d8a}
-.ai::placeholder{color:#ffaacc;font-weight:500}
-.ab{width:100%;padding:13px;border-radius:24px;border:none;background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:transform .15s;box-shadow:0 4px 14px rgba(200,50,150,.35)}
-.ab:hover{transform:scale(1.02)}
-.at{font-size:13px;color:#cc2266;font-weight:700;cursor:pointer;text-decoration:underline}
-#auth-err{font-size:12px;color:#cc2266;font-weight:700;text-align:center;display:none}
+.role-tab{flex:1;padding:10px;border-radius:50px;border:2px solid #f0c0de;background:#fff5fb;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#cc2266;cursor:pointer;transition:all .15s;text-align:center}
+.role-tab.active{background:linear-gradient(135deg,#ff3d8a,#d63af9);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(214,58,249,.3)}
+.ai{width:100%;border:2px solid #f0c0de;border-radius:50px;padding:12px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;color:#440022;background:#fff5fb;transition:border-color .2s,box-shadow .2s}
+.ai:focus{border-color:#ff3d8a;box-shadow:0 0 0 3px rgba(255,61,138,.10)}
+.ai::placeholder{color:#f0a0cc;font-weight:500}
+.ab{width:100%;padding:14px;border-radius:50px;border:none;background:linear-gradient(135deg,#ff3d8a,#d63af9);color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 6px 18px rgba(214,58,249,.35);letter-spacing:.2px}
+.ab:hover{transform:scale(1.02);box-shadow:0 8px 24px rgba(214,58,249,.45)}
+.ab:active{transform:scale(.98)}
+.at{font-size:13px;color:#cc2266;font-weight:700;cursor:pointer;text-align:center}
+.at:hover{text-decoration:underline}
+#auth-err{font-size:12px;color:#cc2266;font-weight:700;text-align:center;display:none;background:#fff0f5;border-radius:12px;padding:8px 12px}
 #parent-extra{display:none;width:100%}
 
-/* HEADER */
-.hdr{background:linear-gradient(135deg,#ff3d8a,#c040ff);padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.hdr-av{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid rgba(255,255,255,.5);flex-shrink:0}
-.hdr-txt{flex:1}
-.hdr-txt h1{color:#fff;font-size:17px;font-weight:900;line-height:1.2}
-.hdr-txt p{color:rgba(255,255,255,.85);font-size:11px;font-weight:700}
-.hdr-right{display:flex;align-items:center;gap:8px}
-.online{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 8px}
-.online-dot{width:7px;height:7px;background:#7fff7f;border-radius:50%;animation:pulse 2s infinite}
-.online span{color:#fff;font-size:10px;font-weight:700}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.so-btn{background:rgba(255,255,255,.2);border:none;color:#fff;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer}
+/* ── COUNTER ── */
+#counter{background:linear-gradient(90deg,#fff0f8,#f5e8ff);border-bottom:1px solid #f5d0ea;padding:6px 16px;text-align:center;font-size:11px;font-weight:800;color:#cc2266;flex-shrink:0;letter-spacing:.2px}
 
-/* COUNTER */
-#counter{background:#fff0f7;border-bottom:1px solid #ffd6eb;padding:5px 16px;text-align:center;font-size:11px;font-weight:800;color:#e0407a;flex-shrink:0}
-
-/* MESSAGES */
-#messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+/* ── MESSAGES ── */
+#messages{flex:1;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;background:#fdfaff}
 #messages::-webkit-scrollbar{width:3px}
-#messages::-webkit-scrollbar-thumb{background:#ffb3d9;border-radius:4px}
+#messages::-webkit-scrollbar-thumb{background:#f0b3d9;border-radius:4px}
 .bw{display:flex;flex-direction:column;max-width:82%;animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
-@keyframes popIn{from{transform:scale(.8) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+@keyframes popIn{from{transform:scale(.85) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 .bw.hype{align-self:flex-start;align-items:flex-start}
 .bw.child{align-self:flex-end;align-items:flex-end}
-.bb{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.55;font-weight:600}
-.bb.hype{background:linear-gradient(135deg,#ff3d8a,#ff70aa);color:#fff;border-bottom-left-radius:4px}
-.bb.child{background:linear-gradient(135deg,#8833ff,#c040ff);color:#fff;border-bottom-right-radius:4px}
-.bb.stall{background:linear-gradient(135deg,#ff9900,#ffcc00);color:#fff;border-bottom-left-radius:4px}
-.bt{font-size:10px;color:#cc88aa;font-weight:600;margin-top:3px;padding:0 4px}
+.bb{padding:11px 15px;border-radius:20px;font-size:14px;line-height:1.6;font-weight:600}
+.bb.hype{background:linear-gradient(135deg,#ff3d8a,#ff75b0);color:#fff;border-bottom-left-radius:5px;box-shadow:0 3px 10px rgba(255,61,138,.22)}
+.bb.child{background:linear-gradient(135deg,#9b3cf7,#c840ff);color:#fff;border-bottom-right-radius:5px;box-shadow:0 3px 10px rgba(155,60,247,.22)}
+.bb.stall{background:linear-gradient(135deg,#ff9900,#ffcc00);color:#fff;border-bottom-left-radius:5px;box-shadow:0 3px 10px rgba(255,153,0,.22)}
+.bt{font-size:10px;color:#c090b0;font-weight:600;margin-top:3px;padding:0 4px}
 
-/* TYPING */
-#typing{display:none;align-items:center;gap:5px;padding:11px 15px;background:linear-gradient(135deg,#ff3d8a,#ff70aa);border-radius:18px;border-bottom-left-radius:4px;width:fit-content;margin:0 14px 4px;flex-shrink:0}
+/* ── TYPING ── */
+#typing{display:none;align-items:center;gap:5px;padding:11px 15px;background:linear-gradient(135deg,#ff3d8a,#ff75b0);border-radius:20px;border-bottom-left-radius:5px;width:fit-content;margin:0 14px 4px;flex-shrink:0;box-shadow:0 3px 10px rgba(255,61,138,.2)}
 #typing span{width:7px;height:7px;background:rgba(255,255,255,.9);border-radius:50%;animation:tb 1.4s infinite ease-in-out}
 #typing span:nth-child(2){animation-delay:.2s}
 #typing span:nth-child(3){animation-delay:.4s}
 @keyframes tb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
 
-/* RED BANNER */
-#red-banner{display:none;background:#ffe0e0;border-top:2px solid #ff6666;padding:8px 16px;font-size:12px;font-weight:700;color:#cc0000;text-align:center;flex-shrink:0}
+/* ── RED BANNER ── */
+#red-banner{display:none;background:linear-gradient(135deg,#ffe0e0,#fff0f0);border-top:2px solid #ff8888;padding:9px 16px;font-size:12px;font-weight:800;color:#cc0033;text-align:center;flex-shrink:0}
 
-/* ERROR */
+/* ── ERROR ── */
 #err-bar{display:none;background:#ffe0ef;color:#cc2266;font-size:12px;font-weight:700;padding:7px 16px;text-align:center;flex-shrink:0}
 
-/* QUICK TABS */
-#qtabs{display:flex;gap:6px;padding:8px 12px 0;background:#fff;flex-shrink:0}
-.qt{flex:1;padding:6px 4px;border-radius:20px;border:1.5px solid #ffb3d9;background:#fff8fc;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#e0407a;cursor:pointer;transition:all .15s;text-align:center}
-.qt:hover{background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff;border-color:transparent}
+/* ── QUICK TABS ── */
+#qtabs{display:flex;gap:6px;padding:9px 12px 6px;background:#fff;flex-shrink:0;border-top:1px solid #f5e0f0}
+.qt{flex:1;padding:7px 4px;border-radius:50px;border:2px solid #f0c0de;background:#fff5fb;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#e0407a;cursor:pointer;transition:all .15s;text-align:center}
+.qt:hover{background:linear-gradient(135deg,#ff3d8a,#d63af9);color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(214,58,249,.25)}
 
-/* INPUT */
-#input-area{padding:10px 12px;background:#fff;border-top:1px solid #ffd6eb;display:flex;align-items:center;gap:8px;flex-shrink:0}
-#msg-in{flex:1;border:2px solid #ffb3d9;border-radius:24px;padding:10px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;color:#440022;background:#fff8fc;transition:border-color .2s,box-shadow .2s;min-width:0}
-#msg-in:focus{border-color:#ff3d8a;box-shadow:0 0 0 3px rgba(255,61,138,.12)}
-#msg-in::placeholder{color:#ffaacc;font-weight:500}
-#send-btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ff3d8a,#c040ff);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;flex-shrink:0;box-shadow:0 4px 12px rgba(200,50,150,.35)}
-#send-btn:hover{transform:scale(1.08)}
+/* ── INPUT ── */
+#input-area{padding:10px 12px 12px;background:#fff;border-top:1px solid #f5e0f0;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#msg-in{flex:1;border:2px solid #f0c0de;border-radius:50px;padding:11px 18px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;color:#440022;background:#fff5fb;transition:border-color .2s,box-shadow .2s;min-width:0}
+#msg-in:focus{border-color:#ff3d8a;box-shadow:0 0 0 3px rgba(255,61,138,.10)}
+#msg-in::placeholder{color:#f0a0cc;font-weight:500}
+#send-btn{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#ff3d8a,#d63af9);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;flex-shrink:0;box-shadow:0 5px 14px rgba(214,58,249,.4)}
+#send-btn:hover{transform:scale(1.08);box-shadow:0 7px 18px rgba(214,58,249,.5)}
 #send-btn:active{transform:scale(.94)}
-#send-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+#send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
 #send-btn svg{width:18px;height:18px;fill:#fff;margin-left:2px}
 
-/* PARENT */
+/* ── PARENT SCREEN ── */
 #parent-screen{display:none;flex-direction:column;flex:1;overflow:hidden}
-#pq{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
-.qcard{background:#fff;border:1.5px solid #ffd6eb;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.qcard.red{border-color:#ff6666;background:#fff8f8}
-.qbadge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:12px;align-self:flex-start;color:#fff}
-.qmsg{font-size:14px;font-weight:600;color:#440022;font-style:italic}
-.qtime{font-size:11px;color:#aa6688;font-weight:600}
+#pq{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;background:#fdfaff}
+.pq-header{padding:14px 14px 4px;background:#fdfaff;flex-shrink:0}
+.pq-header h2{font-size:16px;font-weight:900;color:#440022}
+.pq-header p{font-size:12px;color:#aa6688;font-weight:600;margin-top:2px}
+
+.qcard{background:#fff;border:1.5px solid #f5d0ea;border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:9px;box-shadow:0 2px 10px rgba(200,50,150,.07)}
+.qcard.red{border-color:#ffaaaa;background:#fff8f8;box-shadow:0 2px 10px rgba(255,80,80,.10)}
+.qbadge{font-size:11px;font-weight:800;padding:4px 12px;border-radius:50px;align-self:flex-start;color:#fff;letter-spacing:.2px}
+.qchild{font-size:12px;font-weight:800;color:#cc2266;background:#fff0f7;border-radius:50px;padding:3px 10px}
+.qmsg{font-size:14px;font-weight:600;color:#440022;font-style:italic;line-height:1.5;background:#fff8fc;border-radius:12px;padding:10px 12px;border-left:3px solid #ffb3d9}
+.qcard.red .qmsg{border-left-color:#ff8888}
+.qtime{font-size:11px;color:#cc88aa;font-weight:600}
 .qacts{display:flex;gap:8px}
-.qbtn{flex:1;padding:8px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:transform .15s}
+.qbtn{flex:1;padding:9px;border-radius:50px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:transform .15s,box-shadow .15s;letter-spacing:.2px}
 .qbtn:active{transform:scale(.96)}
-.qbtn.respond{background:linear-gradient(135deg,#ff3d8a,#c040ff);color:#fff}
-.qbtn.dismiss{background:#f0e0ef;color:#883366}
-#no-q{text-align:center;color:#cc88aa;font-weight:700;font-size:14px;padding:40px 0}
+.qbtn.respond{background:linear-gradient(135deg,#ff3d8a,#d63af9);color:#fff;box-shadow:0 4px 12px rgba(214,58,249,.3)}
+.qbtn.respond:hover{box-shadow:0 6px 16px rgba(214,58,249,.4)}
+.qbtn.dismiss{background:#f5e8f5;color:#883366;border:1.5px solid #f0c0de}
+#no-q{text-align:center;color:#cc88aa;font-weight:700;font-size:14px;padding:48px 0;line-height:1.8}
 </style>
 </head>
 <body>
@@ -110,28 +132,32 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#ffe0f0,#
 
   <!-- AUTH -->
   <div id="auth-screen">
-    <div class="logo">💅</div>
-    <h1>Hype Girl</h1>
-    <p>Your AI Bestie for tween &amp; teen girls</p>
-    <div class="role-tabs">
-      <button class="role-tab active" id="tab-child" onclick="setRole('child')">I'm a Girl ✨</button>
-      <button class="role-tab" id="tab-parent" onclick="setRole('parent')">I'm a Parent 👨‍👧</button>
+    <div class="auth-hero">
+      <div class="auth-logo">💅</div>
+      <h1>Hype Girl</h1>
+      <p>Your AI Bestie for tween &amp; teen girls</p>
     </div>
-    <input class="ai" type="text" id="a-name" placeholder="Your name" />
-    <input class="ai" type="email" id="a-email" placeholder="Email address" />
-    <input class="ai" type="password" id="a-pass" placeholder="Password" />
-    <input class="ai" type="text" id="a-child" placeholder="Your child's name" style="display:none" />
-    <div id="auth-err"></div>
-    <button class="ab" id="a-btn" onclick="handleAuth()">Sign Up &amp; Start Chatting 💕</button>
-    <span class="at" id="a-tog" onclick="toggleMode()">Already have an account? Sign in</span>
+    <div class="auth-body">
+      <div class="role-tabs">
+        <button class="role-tab active" id="tab-child" onclick="setRole('child')">I'm a Girl ✨</button>
+        <button class="role-tab" id="tab-parent" onclick="setRole('parent')">I'm a Parent 👨‍👧</button>
+      </div>
+      <input class="ai" type="text" id="a-name" placeholder="Your name" />
+      <input class="ai" type="email" id="a-email" placeholder="Email address" />
+      <input class="ai" type="password" id="a-pass" placeholder="Password" />
+      <input class="ai" type="text" id="a-child" placeholder="Your child's name" style="display:none" />
+      <div id="auth-err"></div>
+      <button class="ab" id="a-btn" onclick="handleAuth()">Sign Up &amp; Start Chatting 💕</button>
+      <span class="at" id="a-tog" onclick="toggleMode()">Already have an account? Sign in</span>
+    </div>
   </div>
 
   <!-- CHILD CHAT -->
   <div id="chat-screen" style="display:none;flex-direction:column;flex:1;overflow:hidden">
-    <div class="hdr">
-      <div class="hdr-av">💅</div>
-      <div class="hdr-txt"><h1>Hype Girl</h1><p id="sub">Your AI Bestie</p></div>
-      <div class="hdr-right">
+    <div class="cmp-hdr">
+      <div class="cmp-av">💅</div>
+      <div class="cmp-txt"><h1>Hype Girl</h1><p id="sub">Your AI Bestie</p></div>
+      <div class="cmp-right">
         <div class="online"><div class="online-dot"></div><span>Active</span></div>
         <button class="so-btn" onclick="doSignOut()">Sign out</button>
       </div>
@@ -156,10 +182,14 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#ffe0f0,#
 
   <!-- PARENT -->
   <div id="parent-screen">
-    <div class="hdr">
-      <div class="hdr-av">👨‍👧</div>
-      <div class="hdr-txt"><h1>Hype HQ</h1><p id="p-sub">Parent Dashboard</p></div>
+    <div class="cmp-hdr">
+      <div class="cmp-av">👨‍👧</div>
+      <div class="cmp-txt"><h1>Hype HQ</h1><p id="p-sub">Parent Dashboard</p></div>
       <button class="so-btn" onclick="doSignOut()">Sign out</button>
+    </div>
+    <div class="pq-header">
+      <h2>Message Queue</h2>
+      <p>Messages waiting for your personal touch</p>
     </div>
     <div id="pq"><div id="no-q">Loading... 💕</div></div>
   </div>
@@ -299,7 +329,6 @@ function loadHistory() {
     .orderBy('createdAt').limitToLast(50)
     .onSnapshot(function(snap) {
       if (!loaded) {
-        // First load - render all messages
         loaded = true;
         el.innerHTML = '';
         chatHistory = [];
@@ -317,13 +346,11 @@ function loadHistory() {
           });
         }
       } else {
-        // Subsequent updates - only add truly new docs
         snap.docs.forEach(function(doc) {
           if (!knownIds[doc.id]) {
             knownIds[doc.id] = true;
             var d = doc.data();
             if (!d.text) return;
-            // Only show parent-originated hypeGirl responses (not ones we already rendered locally)
             if (d.sender === 'hypeGirl') {
               addBubble(d.text, 'hype', true);
               chatHistory.push({ role: 'assistant', content: d.text });
@@ -337,7 +364,6 @@ function loadHistory() {
     });
 }
 
-
 var locallyShownIds = {};
 
 function saveMsg(text, sender, cls) {
@@ -345,7 +371,6 @@ function saveMsg(text, sender, cls) {
     text: text, sender: sender, classification: cls || 'GREEN',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(function(ref) {
-    // Mark this ID as locally shown so the real-time listener doesn't re-render it
     locallyShownIds[ref.id] = true;
     if (window.msgListener && window.msgListenerKnownIds) {
       window.msgListenerKnownIds[ref.id] = true;
@@ -373,17 +398,17 @@ function loadQueue() {
         var d = doc.data();
         var card = document.createElement('div');
         card.className = d.classification === 'RED' ? 'qcard red' : 'qcard';
-        var bc = d.classification === 'RED' ? '#ff3d3d' : '#ff9900';
-        var bt = d.classification === 'RED' ? '🚨 URGENT' : '⚠️ Review';
+        var bc = d.classification === 'RED' ? 'linear-gradient(135deg,#ff3d3d,#ff6666)' : 'linear-gradient(135deg,#ff9900,#ffcc00)';
+        var bt = d.classification === 'RED' ? '🚨 Urgent' : '⚠️ Review';
         var msgSafe = (d.message || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center">'
+        card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
           + '<span class="qbadge" style="background:' + bc + '">' + bt + '</span>'
-          + '<span class="qtime">' + (d.childName || '') + '</span>'
+          + '<span class="qchild">' + (d.childName || '') + '</span>'
           + '</div>'
           + '<div class="qmsg">&ldquo;' + (d.message || '') + '&rdquo;</div>'
           + '<div class="qacts">'
           + '<button class="qbtn dismiss" onclick="dismissItem(\'' + doc.id + '\')">Dismiss</button>'
-          + '<button class="qbtn respond" onclick="respondItem(\'' + doc.id + '\',\'' + (d.childId || '') + '\',\'' + msgSafe + '\')">Respond as Hype Girl</button>'
+          + '<button class="qbtn respond" onclick="respondItem(\'' + doc.id + '\',\'' + (d.childId || '') + '\',\'' + msgSafe + '\')">Respond as Hype Girl ✨</button>'
           + '</div>';
         qEl.appendChild(card);
       });
@@ -492,7 +517,6 @@ function sendMsg() {
   chatHistory.push({ role: 'user', content: text });
   setLoading(true);
 
-  // Step 1: Classify
   fetch(WORKER, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -521,7 +545,6 @@ function sendMsg() {
       return;
     }
 
-    // GREEN - get response
     saveMsg(text, 'child', 'GREEN');
     fetch(WORKER, {
       method: 'POST',

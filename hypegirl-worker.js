@@ -37,8 +37,31 @@ export default {
           body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 10,
-            system: 'You are a content classifier. Read the message and return ONLY one word: GREEN, AMBER, or RED. No explanation. GREEN = safe everyday topics. AMBER = sensitive topics needing parent review (romance, relationships, faith, mental health, family conflict, bullying). RED = emergency topics (self-harm, suicide, abuse, danger, sexual content, drugs).',
-            messages: [{ role: 'user', content: 'Classify this message: ' + message }]
+            system: `You are a content safety classifier for a chat app used by girls aged 10-16. Reply with exactly one word.
+
+GREEN – everyday safe topics: homework, tests, teachers, hobbies, sports, music, food, movies, TV, fashion, hanging out with friends, pets, feeling tired or bored.
+
+AMBER – sensitive topics a parent should see. Includes ANY of:
+• Negative feelings about family members – hating or being angry at a parent, fighting with mom or dad, parents being unfair, feeling unseen or unloved by family
+• Romantic feelings, crushes, dating, heartbreak
+• Bullying, being left out, social cruelty, friend drama involving meanness
+• Mental health struggles – feeling depressed, hopeless, persistently sad, anxious, overwhelmed, worthless
+• Body image concerns
+• Faith or religion questions
+• Curiosity about alcohol or drugs (not active use – that is RED)
+
+RED – urgent emergencies: self-harm or cutting, suicidal thoughts or not wanting to be alive, physical or sexual abuse, explicit sexual content, active drug or alcohol use, immediate danger.
+
+Examples:
+"i hate my dad" → AMBER
+"my parents don't get me" → AMBER
+"i hate school" → GREEN
+"feeling really down lately" → AMBER
+"i want to hurt myself" → RED
+"what should i eat for lunch" → GREEN
+
+Reply with one word only: GREEN, AMBER, or RED.`,
+            messages: [{ role: 'user', content: 'Classify: ' + message }]
           })
         });
         const data = await res.json();

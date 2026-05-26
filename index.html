@@ -455,7 +455,6 @@ function sendMsg() {
   document.getElementById('msg-in').value = '';
   addBubble(text, 'child');
   history.push({ role: 'user', content: text });
-  saveMsg(text, 'child', 'PENDING');
   setLoading(true);
 
   // Step 1: Classify
@@ -464,9 +463,12 @@ function sendMsg() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'classify', message: text })
   }).then(function(r) { return r.json(); }).then(function(cd) {
-    var clsRaw = (cd.classification || 'GREEN').toUpperCase();
+    if (cd.error) { console.error('[classify] worker error:', cd.error); }
+    console.log('[classify] raw response:', cd);
+    var clsRaw = ((cd && cd.classification) || 'GREEN').toUpperCase();
     var clsMatch = clsRaw.match(/\b(RED|AMBER|GREEN)\b/);
     var cls = clsMatch ? clsMatch[1] : 'GREEN';
+    console.log('[classify] result:', cls);
 
     if (cls === 'RED') {
       var redStall = getStall();
@@ -474,7 +476,7 @@ function sendMsg() {
       addBubble(redStall, 'stall');
       history.push({ role: 'assistant', content: redStall });
       document.getElementById('red-banner').style.display = 'block';
-      saveMsg(text, 'child', 'RED');
+      saveMsg(text, 'child', 'RED');          // single save with correct classification
       saveMsg(redStall, 'stall', 'RED');
       sendToQueue(text, 'RED');
       return;
@@ -485,7 +487,7 @@ function sendMsg() {
       setLoading(false);
       addBubble(amberStall, 'stall');
       history.push({ role: 'assistant', content: amberStall });
-      saveMsg(text, 'child', 'AMBER');
+      saveMsg(text, 'child', 'AMBER');        // single save with correct classification
       saveMsg(amberStall, 'stall', 'AMBER');
       sendToQueue(text, 'AMBER');
       return;
@@ -502,6 +504,7 @@ function sendMsg() {
       history.push({ role: 'assistant', content: reply });
       setLoading(false);
       addBubble(reply, 'hype');
+      saveMsg(text, 'child', 'GREEN');        // save child message once, with correct classification
       saveMsg(reply, 'hypeGirl', 'GREEN');
     }).catch(function(e) {
       setLoading(false);

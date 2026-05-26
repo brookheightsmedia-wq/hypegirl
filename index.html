@@ -359,8 +359,8 @@ body{font-family:'Nunito',sans-serif;background:#f8f0ff;min-height:100vh;display
       <button class="qt" onclick="qs('Hype me up!')">🔥 Hype Me</button>
     </div>
     <div id="input-area">
-      <input id="msg-in" type="text" placeholder="Tell me everything..." maxlength="500" autocomplete="off" />
-      <button id="send-btn">
+      <input id="msg-in" type="text" placeholder="Tell me everything..." maxlength="500" autocomplete="off" onkeydown="handleKey(event)" />
+      <button id="send-btn" onclick="handleSend()">
         <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
       </button>
     </div>
@@ -834,13 +834,9 @@ function sendToQueue(msg, cls) {
     }).catch(function(e) { console.log('queue err', e); });
 }
 
-var sending = false;
 function sendMsg() {
-  if (sending) return;
   var text = document.getElementById('msg-in').value.trim();
   if (!text) return;
-  sending = true;
-  setTimeout(function(){ sending = false; }, 500);
   document.getElementById('err-bar').style.display = 'none';
   document.getElementById('red-banner').style.display = 'none';
   document.getElementById('msg-in').value = '';
@@ -905,17 +901,20 @@ function sendMsg() {
 
 function qs(msg) { document.getElementById('msg-in').value = msg; sendMsg(); }
 
-document.getElementById('msg-in').addEventListener('keydown', function(e) {
+var sending = false;
+function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     e.stopPropagation();
-    sendMsg();
+    handleSend();
   }
-});
-document.getElementById('send-btn').addEventListener('click', function(e) {
-  e.preventDefault();
+}
+function handleSend() {
+  if (sending) return;
+  sending = true;
   sendMsg();
-});
+  setTimeout(function(){ sending = false; }, 1000);
+}
 </script>
 </body>
 </html>

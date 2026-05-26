@@ -605,7 +605,7 @@ function loadHistory() {
           knownIds[doc.id] = true;
           var d = doc.data();
           if (!d.text) return;
-          if (d.sender === 'hypeGirl' && !locallyShownIds[doc.id]) {
+          if (d.sender === 'hypeGirl' && d.source !== 'local' && !locallyShownIds[doc.id]) {
             addBubble(d.text, 'hype', true);
             chatHistory.push({ role: 'assistant', content: d.text });
           }
@@ -882,7 +882,7 @@ function sendMsg() {
       setLoading(false);
       addBubble(reply, 'hype');
       db.collection('users').doc(user.uid).collection('messages').add({
-        text: reply, sender: 'hypeGirl', classification: 'GREEN',
+        text: reply, sender: 'hypeGirl', source: 'local', classification: 'GREEN',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(ref) {
         locallyShownIds[ref.id] = true;

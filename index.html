@@ -880,7 +880,12 @@ function sendMsg() {
       chatHistory.push({ role: 'assistant', content: reply });
       setLoading(false);
       addBubble(reply, 'hype');
-      saveMsg(reply, 'hypeGirl', 'GREEN');
+      db.collection('users').doc(user.uid).collection('messages').add({
+        text: reply, sender: 'hypeGirl', classification: 'GREEN',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function(ref) {
+        if (window.msgListenerKnownIds) window.msgListenerKnownIds[ref.id] = true;
+      }).catch(function(e) { console.log('save hypeGirl err', e); });
     }).catch(function(e) {
       setLoading(false);
       document.getElementById('err-bar').style.display = 'block';

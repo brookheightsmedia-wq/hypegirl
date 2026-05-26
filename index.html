@@ -310,23 +310,35 @@ function loadHistory() {
 }
 
 function saveMsg(text, sender, cls) {
+  console.log('[saveMsg] called — sender:', sender, '| cls:', cls, '| text:', text.substring(0, 60));
   db.collection('users').doc(user.uid).collection('messages').add({
     text: text, sender: sender, classification: cls || 'GREEN',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(function(e) { console.log('save err', e); });
+  }).then(function(ref) {
+    console.log('[saveMsg] ✅ saved — docId:', ref.id, '| sender:', sender, '| cls:', cls);
+  }).catch(function(e) {
+    console.error('[saveMsg] ❌ FAILED — sender:', sender, '| cls:', cls, '| code:', e.code, '| message:', e.message);
+  });
 }
 
 // PARENT QUEUE
 function loadQueue() {
   var qEl = document.getElementById('pq');
   qEl.innerHTML = '<div id="no-q">Loading... 💕</div>';
+  console.log('[loadQueue] parent profile.name:', profile.name, '| profile.childName:', profile.childName);
+  console.log('[loadQueue] querying parentQueue where childName ==', JSON.stringify(profile.childName));
   qListener = db.collection('parentQueue')
     .where('childName', '==', profile.childName)
     .onSnapshot(function(snap) {
+      console.log('[loadQueue] snapshot fired — total docs in query:', snap.size);
+      snap.forEach(function(doc) {
+        console.log('[loadQueue] doc', doc.id, '—', JSON.stringify(doc.data()));
+      });
       var pending = [];
       snap.forEach(function(doc) {
         if (doc.data().status === 'pending') pending.push(doc);
       });
+      console.log('[loadQueue] pending count:', pending.length);
       qEl.innerHTML = '';
       if (pending.length === 0) {
         qEl.innerHTML = '<div id="no-q">No messages to review right now 🎉<br><br>All clear! 💕</div>';
@@ -351,7 +363,7 @@ function loadQueue() {
         qEl.appendChild(card);
       });
     }, function(err) {
-      console.log('Queue error:', err);
+      console.error('[loadQueue] ❌ onSnapshot ERROR — code:', err.code, '| message:', err.message);
       qEl.innerHTML = '<div id="no-q">Error loading queue: ' + err.message + '</div>';
     });
 }
@@ -418,7 +430,9 @@ function getStall() {
 }
 
 function sendToQueue(msg, cls) {
-  // Save to queue immediately — independent of parent lookup
+  console.log('[sendToQueue] ▶ called — cls:', cls, '| msg:', msg.substring(0, 60));
+  console.log('[sendToQueue] writing parentQueue doc with childId:', user.uid, '| childName:', JSON.stringify(profile.name));
+
   db.collection('parentQueue').add({
     childId: user.uid,
     childName: profile.name,
@@ -427,29 +441,52 @@ function sendToQueue(msg, cls) {
     classification: cls,
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(function(e) { console.log('queue save err', e); });
+  }).then(function(ref) {
+    console.log('[sendToQueue] ✅ parentQueue doc written — docId:', ref.id, '| childName stored:', JSON.stringify(profile.name));
+  }).catch(function(e) {
+    console.error('[sendToQueue] ❌ parentQueue.add FAILED — code:', e.code, '| message:', e.message);
+  });
 
-  // Look up parent email for the alert (best-effort; falls back to default)
+  console.log('[sendToQueue] looking up parent user where childName ==', JSON.stringify(profile.name));
   db.collection('users').where('role', '==', 'parent').where('childName', '==', profile.name).get()
     .then(function(snap) {
+      console.log('[sendToQueue] parent lookup found', snap.size, 'result(s)');
+      snap.forEach(function(doc) {
+        console.log('[sendToQueue]   parent doc:', doc.id, JSON.stringify(doc.data()));
+      });
       var parentEmail = snap.empty ? 'brookheightsmedia@gmail.com' : snap.docs[0].data().email;
+      console.log('[sendToQueue] sending alert to:', parentEmail);
       fetch(WORKER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'alert', childName: profile.name, parentEmail: parentEmail, message: msg, classification: cls })
-      }).catch(function(e) { console.log('alert err', e); });
-    }).catch(function() {
+      }).then(function(r) {
+        console.log('[sendToQueue] alert HTTP status:', r.status);
+      }).catch(function(e) {
+        console.error('[sendToQueue] alert fetch error:', e.message);
+      });
+    }).catch(function(e) {
+      console.error('[sendToQueue] parent lookup FAILED — code:', e.code, '| message:', e.message, '— using fallback email');
       fetch(WORKER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'alert', childName: profile.name, parentEmail: 'brookheightsmedia@gmail.com', message: msg, classification: cls })
-      }).catch(function(e) { console.log('alert err', e); });
+      }).then(function(r) {
+        console.log('[sendToQueue] fallback alert HTTP status:', r.status);
+      }).catch(function(e) {
+        console.error('[sendToQueue] fallback alert error:', e.message);
+      });
     });
 }
 
 function sendMsg() {
   var text = document.getElementById('msg-in').value.trim();
   if (!text) return;
+  console.group('[sendMsg] ▶ new message');
+  console.log('[sendMsg] text:', JSON.stringify(text));
+  console.log('[sendMsg] user.uid:', user && user.uid);
+  console.log('[sendMsg] profile.name:', profile && profile.name, '| profile.role:', profile && profile.role);
+  console.log('[sendMsg] WORKER url:', WORKER);
   document.getElementById('err-bar').style.display = 'none';
   document.getElementById('red-banner').style.display = 'none';
   document.getElementById('msg-in').value = '';
@@ -458,64 +495,88 @@ function sendMsg() {
   setLoading(true);
 
   // Step 1: Classify
+  console.log('[classify] sending POST to', WORKER, '— body:', JSON.stringify({ action: 'classify', message: text }));
   fetch(WORKER, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'classify', message: text })
-  }).then(function(r) { return r.json(); }).then(function(cd) {
-    if (cd.error) { console.error('[classify] worker error:', cd.error); }
-    console.log('[classify] raw response:', cd);
+  }).then(function(r) {
+    console.log('[classify] HTTP response — status:', r.status, '| ok:', r.ok, '| headers content-type:', r.headers.get('content-type'));
+    return r.json();
+  }).then(function(cd) {
+    console.log('[classify] parsed response body:', JSON.stringify(cd));
+    if (cd && cd.error) {
+      console.error('[classify] ❌ worker returned error field:', cd.error);
+    }
     var clsRaw = ((cd && cd.classification) || 'GREEN').toUpperCase();
     var clsMatch = clsRaw.match(/\b(RED|AMBER|GREEN)\b/);
     var cls = clsMatch ? clsMatch[1] : 'GREEN';
-    console.log('[classify] result:', cls);
+    console.log('[classify] clsRaw:', JSON.stringify(clsRaw), '| final cls:', cls);
 
     if (cls === 'RED') {
+      console.log('[routing] 🔴 RED — showing stall + banner + queuing');
       var redStall = getStall();
+      console.log('[routing] stall text:', redStall.substring(0, 60));
       setLoading(false);
       addBubble(redStall, 'stall');
+      console.log('[routing] stall bubble added to DOM');
       history.push({ role: 'assistant', content: redStall });
       document.getElementById('red-banner').style.display = 'block';
-      saveMsg(text, 'child', 'RED');          // single save with correct classification
+      saveMsg(text, 'child', 'RED');
       saveMsg(redStall, 'stall', 'RED');
       sendToQueue(text, 'RED');
+      console.groupEnd();
       return;
     }
 
     if (cls === 'AMBER') {
+      console.log('[routing] 🟡 AMBER — showing stall + queuing');
       var amberStall = getStall();
+      console.log('[routing] stall text:', amberStall.substring(0, 60));
       setLoading(false);
       addBubble(amberStall, 'stall');
+      console.log('[routing] stall bubble added to DOM');
       history.push({ role: 'assistant', content: amberStall });
-      saveMsg(text, 'child', 'AMBER');        // single save with correct classification
+      console.log('[routing] history length after push:', history.length);
+      saveMsg(text, 'child', 'AMBER');
       saveMsg(amberStall, 'stall', 'AMBER');
       sendToQueue(text, 'AMBER');
+      console.groupEnd();
       return;
     }
 
     // GREEN - get response
+    console.log('[routing] 🟢 GREEN — fetching AI response');
+    console.log('[routing] history being sent (length ' + history.length + '):', JSON.stringify(history));
     fetch(WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'chat', system: SYSTEM, messages: history })
-    }).then(function(r) { return r.json(); }).then(function(data) {
+    }).then(function(r) {
+      console.log('[chat] HTTP response — status:', r.status, '| ok:', r.ok);
+      return r.json();
+    }).then(function(data) {
+      console.log('[chat] parsed response:', JSON.stringify(data).substring(0, 200));
       if (data.error) throw new Error(data.error.message);
       var reply = data.content[0].text;
       history.push({ role: 'assistant', content: reply });
       setLoading(false);
       addBubble(reply, 'hype');
-      saveMsg(text, 'child', 'GREEN');        // save child message once, with correct classification
+      saveMsg(text, 'child', 'GREEN');
       saveMsg(reply, 'hypeGirl', 'GREEN');
+      console.groupEnd();
     }).catch(function(e) {
       setLoading(false);
       document.getElementById('err-bar').style.display = 'block';
-      console.log('chat err', e);
+      console.error('[chat] ❌ error:', e.message);
+      console.groupEnd();
     });
 
   }).catch(function(e) {
     setLoading(false);
     document.getElementById('err-bar').style.display = 'block';
-    console.log('classify err', e);
+    console.error('[classify] ❌ fetch/parse error:', e.message);
+    console.groupEnd();
   });
 
   document.getElementById('msg-in').focus();

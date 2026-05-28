@@ -472,35 +472,28 @@ function extractText(data) {
 
 function sendToQueue(message, classification) {
   var familyCode = state.profile.familyCode || null;
-  var query = db.collection("users").where("role", "==", "parent");
-  if (familyCode) query = query.where("familyCode", "==", familyCode);
-  else query = query.where("childName", "==", state.profile.name);
 
-  return query.get().then(function(snapshot) {
-    var parent = snapshot.empty ? null : snapshot.docs[0];
-    var parentData = parent ? parent.data() : {};
-    var parentEmail = parentData.email || "brookheightsmedia@gmail.com";
-    return db.collection("parentQueue").add({
-      childId: state.user.uid,
+  return db.collection("parentQueue").add({
+    childId: state.user.uid,
+    childName: state.profile.name,
+    familyCode: familyCode,
+    parentId: "linked-by-family-code",
+    parentEmail: null,
+    message: message,
+    context: buildParentContext(),
+    classification: classification,
+    status: "pending",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function() {
+    if (!state.profile.parentEmail) return null;
+    return workerFetch({
+      action: "alert",
       childName: state.profile.name,
-      familyCode: familyCode,
-      parentId: parent ? parent.id : "unlinked",
-      parentEmail: parentEmail,
+      parentEmail: state.profile.parentEmail,
       message: message,
-      context: buildParentContext(),
-      classification: classification,
-      status: "pending",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function() {
-      return workerFetch({
-        action: "alert",
-        childName: state.profile.name,
-        parentEmail: parentEmail,
-        message: message,
-        classification: classification
-      }).catch(function() {
-        return null;
-      });
+      classification: classification
+    }).catch(function() {
+      return null;
     });
   });
 }

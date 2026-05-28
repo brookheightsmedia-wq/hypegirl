@@ -82,6 +82,10 @@
         <span id="usage-label">0 / 10 free messages used today</span>
         <span class="usage-track"><span id="usage-fill"></span></span>
       </div>
+      <div id="review-status" class="review-status hidden">
+        <strong>Trusted adult loop is on.</strong>
+        <span id="review-status-text">When a message needs extra care, it goes to your linked parent for review.</span>
+      </div>
 
       <div id="messages" class="messages" aria-live="polite"></div>
 
@@ -130,6 +134,21 @@
           <option value="AMBER">Review only</option>
         </select>
       </div>
+
+      <section class="parent-summary">
+        <div>
+          <span>Linked child</span>
+          <strong id="parent-child-name">Not set</strong>
+        </div>
+        <div>
+          <span>Safety mode</span>
+          <strong>AMBER + RED review</strong>
+        </div>
+        <div>
+          <span>Response style</span>
+          <strong>Preview before send</strong>
+        </div>
+      </section>
 
       <div id="parent-error" class="error bar-error" role="alert"></div>
       <div id="queue" class="queue"></div>

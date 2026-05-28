@@ -107,8 +107,19 @@ function getUsage() {
 function updateUsageUi() {
   var used = getUsage();
   var pct = Math.min(100, Math.round((used / FREE_DAILY_LIMIT) * 100));
-  $("usage-label").textContent = used + " / " + FREE_DAILY_LIMIT + " free messages used today";
+  var remaining = Math.max(0, FREE_DAILY_LIMIT - used);
+  $("usage-label").textContent = used + " / " + FREE_DAILY_LIMIT + " free messages used today - " + remaining + " left until tomorrow";
   $("usage-fill").style.width = pct + "%";
+}
+
+function setReviewStatus(kind, text) {
+  var box = $("review-status");
+  box.className = "review-status" + (kind ? " " + kind : "");
+  $("review-status-text").textContent = text;
+}
+
+function hideReviewStatus() {
+  $("review-status").className = "review-status hidden";
 }
 
 function showScreen(name) {
@@ -232,6 +243,7 @@ auth.onAuthStateChanged(function(user) {
 function showChildApp() {
   showScreen("chat-screen");
   $("child-subtitle").textContent = "Hey " + displayName() + " - Active";
+  hideReviewStatus();
   setAvatarDisplay(state.currentAvatar);
   updateUsageUi();
   loadMessages();
@@ -242,6 +254,7 @@ function showParentApp() {
   showScreen("parent-screen");
   $("parent-subtitle").textContent = "Hey " + displayName() + ". Review, preview, and reply with care.";
   $("parent-family-code").value = state.profile.familyCode || "No code yet";
+  $("parent-child-name").textContent = state.profile.childName || "Not set";
   loadQueue();
 }
 
@@ -404,6 +417,7 @@ function handleMessage(event) {
   if (state.sending) return;
   showError("chat-error", "");
   $("safety-banner").classList.add("hidden");
+  hideReviewStatus();
 
   var text = $("message-input").value.trim();
   if (!text) return;
@@ -458,7 +472,12 @@ function handleFlaggedMessage(text, classification) {
   var stallClientId = clientId("stall");
   state.renderedClientIds.add(stallClientId);
   addBubble({ text: stall, sender: "stall", clientId: stallClientId, createdAt: new Date() }, "stall");
-  if (classification === "RED") $("safety-banner").classList.remove("hidden");
+  if (classification === "RED") {
+    $("safety-banner").classList.remove("hidden");
+    setReviewStatus("urgent", "A linked parent can see this now. Please find a trusted adult right away.");
+  } else {
+    setReviewStatus("review", "This went to your linked parent so a real grown-up can help with care.");
+  }
   return saveMessage(stall, "stall", classification, "local", stallClientId).then(function() {
     return sendToQueue(text, classification);
   });

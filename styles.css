@@ -332,6 +332,35 @@ button {
   font-weight: 900;
 }
 
+.review-status {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 16px;
+  border-bottom: 1px solid #f0d8f8;
+  background: #eefbf8;
+  color: #0b6f68;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.review-status.review {
+  background: #eefbf8;
+  color: #0b6f68;
+}
+
+.review-status.urgent {
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.review-status strong {
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .usage-track {
   flex: 1;
   height: 5px;
@@ -571,6 +600,41 @@ button {
   padding: 12px 14px;
   border-bottom: 1px solid #f0e4f8;
   background: #fff;
+}
+
+.parent-summary {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 14px 12px;
+  background: #fff;
+  border-bottom: 1px solid #f0e4f8;
+}
+
+.parent-summary div {
+  min-width: 0;
+  padding: 10px;
+  border: 1.5px solid #f0d0e8;
+  border-radius: 14px;
+  background: #fff8fc;
+}
+
+.parent-summary span {
+  display: block;
+  color: #a77fa6;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.parent-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: #1a0030;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.25;
 }
 
 .parent-tools select {

@@ -13,10 +13,12 @@ var PRESET_AVATARS = ["HG", "BEST", "SPARK", "STAR", "JOY", "BRAVE", "COOL", "GL
 var SYSTEM = [
   "You are Hype Girl, a fun, confident, supportive AI best friend for pre-teen and tween girls.",
   "Use warm tween texting energy, short sentences, and natural enthusiasm.",
+  "Sound like a kind 11-13 year old bestie, not an adult therapist and not a high-school influencer.",
+  "Prefer simple words, one playful phrase, and no more than one emoji.",
   "Never be mean, sexual, manipulative, formal, or lecture-y.",
   "Do not give medical, legal, sexual, substance-use, self-harm, or emergency advice.",
   "When a topic sounds sensitive, encourage talking to a trusted adult.",
-  "Keep replies under 3-4 sentences."
+  "Keep replies under 2-3 short sentences."
 ].join(" ");
 
 var STALLS = [
@@ -372,36 +374,6 @@ function workerFetch(payload) {
   });
 }
 
-function workerFetchWithLegacyRewrite(payload) {
-  return workerFetch(payload).catch(function(error) {
-    if (payload.action !== "rewrite_parent") throw error;
-    return workerFetch({
-      action: "chat",
-      system: [
-        "You rewrite a parent's response into Hype Girl's voice.",
-        "Keep the meaning, boundaries, and safety guidance intact.",
-        "Use pre-teen/tween best-friend language without hiding that trusted adults matter.",
-        "Do not add new promises, medical advice, secrecy, or sexual content.",
-        "Keep it under 4 short sentences."
-      ].join(" "),
-      messages: [{
-        role: "user",
-        content: [
-          "Original child message:",
-          payload.originalMessage || "",
-          "",
-          "Parent response:",
-          payload.parentResponse || "",
-          "",
-          "Rewrite in Hype Girl's voice."
-        ].join("\n")
-      }]
-    }).then(function(data) {
-      return { text: extractText(data), raw: data };
-    });
-  });
-}
-
 function postWorker(payload, headers) {
   return fetch(WORKER, {
       method: "POST",
@@ -515,6 +487,7 @@ function sendToQueue(message, classification) {
       parentId: parent ? parent.id : "unlinked",
       parentEmail: parentEmail,
       message: message,
+      context: buildParentContext(),
       classification: classification,
       status: "pending",
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -529,6 +502,15 @@ function sendToQueue(message, classification) {
         return null;
       });
     });
+  });
+}
+
+function buildParentContext() {
+  return state.chatHistory.slice(-8).map(function(item) {
+    return {
+      sender: item.role === "user" ? "child" : "hypeGirl",
+      text: item.content
+    };
   });
 }
 
@@ -656,6 +638,7 @@ function openRespondModal(item) {
   $("review-child").textContent = data.childName || "Child";
   $("review-time").textContent = timeAgo(data.createdAt);
   $("review-message").textContent = data.message || "";
+  renderReviewContext(data.context || []);
   $("review-badge").textContent = data.classification === "RED" ? "Urgent" : "Review";
   $("review-badge").className = data.classification === "RED" ? "red" : "amber";
   $("parent-response").value = "";
@@ -663,6 +646,34 @@ function openRespondModal(item) {
   $("preview-card").classList.add("hidden");
   $("send-preview").classList.add("hidden");
   $("respond-modal").classList.remove("hidden");
+}
+
+function renderReviewContext(context) {
+  var container = $("review-context");
+  container.innerHTML = "";
+  if (!context.length) {
+    var empty = document.createElement("p");
+    empty.className = "context-text";
+    empty.textContent = "No recent context was saved for this message.";
+    container.appendChild(empty);
+    return;
+  }
+  var list = document.createElement("div");
+  list.className = "context-list";
+  context.forEach(function(entry) {
+    var row = document.createElement("div");
+    row.className = "context-item";
+    var speaker = document.createElement("span");
+    speaker.className = "context-speaker";
+    speaker.textContent = entry.sender === "child" ? "Child" : "Hype";
+    var text = document.createElement("p");
+    text.className = "context-text";
+    text.textContent = entry.text || "";
+    row.appendChild(speaker);
+    row.appendChild(text);
+    list.appendChild(row);
+  });
+  container.appendChild(list);
 }
 
 function closeModal(id) {
@@ -675,7 +686,7 @@ function previewParentResponse() {
   if (!text) return;
   showError("respond-error", "");
   setBusy($("preview-response"), true, "Previewing...");
-  workerFetchWithLegacyRewrite({
+  workerFetch({
     action: "rewrite_parent",
     parentResponse: text,
     originalMessage: state.currentQueueItem.data.message || ""
@@ -786,6 +797,7 @@ function wireEvents() {
   $("message-form").addEventListener("submit", handleMessage);
   $("child-signout").addEventListener("click", signOut);
   $("parent-signout").addEventListener("click", signOut);
+  $("copy-family-code").addEventListener("click", copyFamilyCode);
   $("avatar-button").addEventListener("click", openAvatarPicker);
   $("save-avatar").addEventListener("click", saveAvatar);
   $("avatar-upload").addEventListener("change", handleAvatarUpload);
@@ -816,6 +828,17 @@ function wireEvents() {
       $("message-form").requestSubmit();
     });
   });
+}
+
+function copyFamilyCode() {
+  var code = $("parent-family-code").value;
+  if (!code || code === "No code yet") return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(function() {
+      $("copy-family-code").textContent = "Copied";
+      setTimeout(function() { $("copy-family-code").textContent = "Copy"; }, 1200);
+    }).catch(function() {});
+  }
 }
 
 wireEvents();

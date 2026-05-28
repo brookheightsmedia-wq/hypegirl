@@ -578,6 +578,11 @@ button {
   min-height: 44px;
 }
 
+#copy-family-code {
+  min-height: 44px;
+  align-self: end;
+}
+
 .queue {
   flex: 1;
   min-height: 0;
@@ -599,6 +604,7 @@ button {
 
 .queue-card,
 .review-card,
+.context-card,
 .tip-card,
 .preview-card {
   border: 1.5px solid #f0e0f8;
@@ -808,9 +814,47 @@ button {
 }
 
 .review-card,
+.context-card,
 .tip-card,
 .preview-card {
   padding: 14px;
+}
+
+.context-card h3 {
+  margin: 0 0 10px;
+  color: #1a0030;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.context-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.context-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.context-speaker {
+  flex: 0 0 auto;
+  min-width: 46px;
+  color: #8b4ecb;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.context-text {
+  margin: 0;
+  color: #4b244c;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: pre-wrap;
 }
 
 #review-badge {

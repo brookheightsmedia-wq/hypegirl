@@ -85,6 +85,8 @@ Parent/child linking should use `familyCode`. The older child-name fallback rema
 - Parent replies are previewed before sending.
 - User and AI text are rendered with text nodes instead of raw `innerHTML`.
 - Local message rendering uses `clientId` plus Firestore document IDs to prevent duplicate chat bubbles.
+- The Worker should use `ALLOWED_ORIGIN=https://hypegirl.pages.dev` in production.
+- Parent queue items include recent conversation context so parents are not replying blind.
 
 Before production, add:
 
@@ -93,3 +95,4 @@ Before production, add:
 - legal review for privacy, terms, and child consent
 - stronger Firebase custom-claim or server-side parent authorization
 - monitoring for Worker errors and classifier drift
+- a verified Resend sender domain instead of `onboarding@resend.dev`

@@ -142,6 +142,7 @@ function updateUsageUi() {
   var remaining = Math.max(0, FREE_DAILY_LIMIT - used);
   $("usage-label").textContent = used + " / " + FREE_DAILY_LIMIT + " free messages used today - " + remaining + " left until tomorrow";
   $("usage-fill").style.width = pct + "%";
+  $("upgrade-prompt").classList.toggle("hidden", remaining > 0);
 }
 
 function setReviewStatus(kind, text) {
@@ -466,7 +467,8 @@ function handleMessage(event) {
   if (!text) return;
 
   if (getUsage() >= FREE_DAILY_LIMIT) {
-    showError("chat-error", "You have used today's free messages. Come back tomorrow or ask a parent to upgrade.");
+    $("upgrade-prompt").classList.remove("hidden");
+    showError("chat-error", "For unlimited messages, ask your parent to upgrade HypeGirl.");
     return;
   }
 
@@ -885,6 +887,9 @@ function wireEvents() {
   $("queue-filter").addEventListener("change", function(event) {
     state.queueFilter = event.target.value;
     refreshQueue();
+  });
+  $("parent-upgrade-button").addEventListener("click", function() {
+    showError("parent-error", "Unlimited family plan checkout is coming next. For now, this is the upgrade path families will use.");
   });
 
   window.addEventListener("focus", refreshQueue);

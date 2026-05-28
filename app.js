@@ -22,14 +22,45 @@ var SYSTEM = [
 ].join(" ");
 
 var STALLS = [
-  "I hear you. This one deserves a real answer, so I am taking a minute.",
-  "Okay, I am really thinking about this because you matter.",
-  "I am not ignoring you. I want to handle this with care.",
-  "This is important, and I want the next words to be thoughtful.",
-  "Thank you for telling me. I am sitting with it for a second."
+  "omg wait, I need a sec to think about this for real 😅",
+  "hold up bestie, I wanna answer this properly, gimme a minute 💕",
+  "brb, my brain's loading a good answer rn 😂",
+  "okay wow, this is kinda deep, let me think for a sec 🧠",
+  "wait, I'm still processing what you said, don't go anywhere 👀",
+  "this is not a quick 'lol' answer, I wanna get it right, one sec 💗",
+  "bestieee, I feel you, I just need a moment to put my thoughts together 🫶",
+  "lowkey thinking hard about this one, give me a tiny minute 🤏",
+  "hold up, I wanna say something actually helpful, not random 😭",
+  "my brain: 'we need a moment.' me: okay fair 😂 brb",
+  "this is actually important, let me think for a bit 💌",
+  "pauseee, I'm rereading what you said rn, gimme a sec 👀",
+  "okay, serious Hype Girl mode activated, one moment 🫡",
+  "I'm still cooking up the right answer in my brain kitchen 👩‍🍳🧠 brb",
+  "hang on, I don't wanna rush this, lemme think for a sec 😌",
+  "wow, I really get what you're saying, I just need a minute to respond 💗",
+  "this definitely deserves more than a 2-second reply lol, one sec 😂",
+  "okay wait, I'm trying to find the right words for you, brb ✨",
+  "bestie, I'm on it, just need a little time to answer for real 🤍",
+  "ngl, this is a lot (in a good way), let me think for a minute 🫠",
+  "I'm still thinking, but I promise I'll answer, stay with me 🫶",
+  "lemme take a tiny brain break so I can answer you properly 😮‍💨",
+  "hold on, I wanna say something that actually makes you feel heard 💗",
+  "okay, I need a sec to untangle this in my head, brb 💫",
+  "I see you fr, I'm just putting my thoughts together right now 😌"
 ];
 
-var RED_STALL = "I am really glad you told me. Please get a trusted adult right now, and if you might be in danger call 911 or call/text 988.";
+var RED_STALLS = [
+  "You matter so much. Please go find a trusted adult right now. If you might be in danger, call 911. You can also call or text 988 to talk to someone immediately.",
+  "You are important and your safety matters. Please get a trusted adult with you right now. If you might be in danger, call 911 or call/text 988 for help.",
+  "Hey, you really matter. This sounds serious. Please find a trusted adult near you right now. If you might be in danger, call 911 or call/text 988 as soon as you can.",
+  "You are not alone in this. You matter. Please get a trusted adult with you right now. If you might be in danger, call 911 or call/text 988 to get help.",
+  "Your feelings are important and so are you. Please go to a trusted adult right now and tell them what's going on. If you might be in danger, call 911 or call/text 988.",
+  "You matter a lot to the people around you. This is really important. Please find a trusted adult right away. If you might be in danger, call 911 or call/text 988.",
+  "I'm really glad you reached out. You matter. Right now, please get a trusted adult with you. If you might be in danger, call 911 or call/text 988 for support.",
+  "What you're feeling is serious, and you matter. Please go to a trusted adult right now and stay with them. If you might be in danger, call 911 or call/text 988 right away.",
+  "Your safety is the most important thing. You matter. Please get a trusted adult right now. If you might be in danger, call 911, and you can also call or text 988 to talk to someone.",
+  "I'm worried about you because you matter. Please go to a trusted adult right now and let them know how you're feeling. If you might be in danger, call 911 or call/text 988 immediately."
+];
 
 firebase.initializeApp(FB_CONFIG);
 var auth = firebase.auth();
@@ -480,7 +511,8 @@ function handleMessage(event) {
 }
 
 function handleFlaggedMessage(text, classification) {
-  var stall = classification === "RED" ? RED_STALL : STALLS[Math.floor(Math.random() * STALLS.length)];
+  var pool = classification === "RED" ? RED_STALLS : STALLS;
+  var stall = pool[Math.floor(Math.random() * pool.length)];
   var stallClientId = clientId("stall");
   state.renderedClientIds.add(stallClientId);
   addBubble({ text: stall, sender: "stall", clientId: stallClientId, createdAt: new Date() }, "stall");

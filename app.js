@@ -50,6 +50,7 @@ var state = {
   currentQueueItem: null,
   currentPreviewText: "",
   queueFilter: "all",
+  lastQueueRefresh: 0,
   sending: false
 };
 
@@ -207,6 +208,17 @@ function stopListeners() {
     state.messageListener();
     state.messageListener = null;
   }
+  if (state.queueListener) {
+    state.queueListener();
+    state.queueListener = null;
+  }
+}
+
+function parentQueueIsActive() {
+  return state.user && state.profile && state.profile.role === "parent";
+}
+
+function stopQueueListener() {
   if (state.queueListener) {
     state.queueListener();
     state.queueListener = null;
@@ -527,28 +539,46 @@ function buildParentContext() {
 }
 
 function loadQueue() {
+  stopQueueListener();
+
+  var ref = queueQuery();
+  state.queueListener = ref.onSnapshot(function(snapshot) {
+    renderQueueSnapshot(snapshot);
+  }, function(error) {
+    showError("parent-error", "Could not load queue: " + error.message);
+  });
+}
+
+function queueQuery() {
   var familyCode = state.profile.familyCode || null;
   var ref = db.collection("parentQueue");
   if (familyCode) ref = ref.where("familyCode", "==", familyCode);
   else ref = ref.where("childName", "==", state.profile.childName || "");
+  return ref;
+}
 
-  state.queueListener = ref.onSnapshot(function(snapshot) {
-    var items = [];
-    snapshot.forEach(function(doc) {
-      var data = doc.data();
-      if (data.status !== "pending") return;
-      if (state.queueFilter !== "all" && data.classification !== state.queueFilter) return;
-      items.push({ id: doc.id, data: data });
-    });
-    items.sort(function(a, b) {
-      var at = a.data.createdAt && a.data.createdAt.toMillis ? a.data.createdAt.toMillis() : 0;
-      var bt = b.data.createdAt && b.data.createdAt.toMillis ? b.data.createdAt.toMillis() : 0;
-      return bt - at;
-    });
-    renderQueue(items);
-  }, function(error) {
-    showError("parent-error", "Could not load queue: " + error.message);
+function renderQueueSnapshot(snapshot) {
+  var items = [];
+  snapshot.forEach(function(doc) {
+    var data = doc.data();
+    if (data.status !== "pending") return;
+    if (state.queueFilter !== "all" && data.classification !== state.queueFilter) return;
+    items.push({ id: doc.id, data: data });
   });
+  items.sort(function(a, b) {
+    var at = a.data.createdAt && a.data.createdAt.toMillis ? a.data.createdAt.toMillis() : 0;
+    var bt = b.data.createdAt && b.data.createdAt.toMillis ? b.data.createdAt.toMillis() : 0;
+    return bt - at;
+  });
+  renderQueue(items);
+}
+
+function refreshQueue() {
+  if (!parentQueueIsActive()) return;
+  var now = Date.now();
+  if (now - state.lastQueueRefresh < 1500) return;
+  state.lastQueueRefresh = now;
+  loadQueue();
 }
 
 function renderQueue(items) {
@@ -824,8 +854,12 @@ function wireEvents() {
   });
   $("queue-filter").addEventListener("change", function(event) {
     state.queueFilter = event.target.value;
-    stopListeners();
-    loadQueue();
+    refreshQueue();
+  });
+
+  window.addEventListener("focus", refreshQueue);
+  document.addEventListener("visibilitychange", function() {
+    if (!document.hidden) refreshQueue();
   });
 
   document.querySelectorAll(".close-modal").forEach(function(button) {

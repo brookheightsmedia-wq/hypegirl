@@ -486,9 +486,7 @@ function handleFlaggedMessage(text, classification) {
   addBubble({ text: stall, sender: "stall", clientId: stallClientId, createdAt: new Date() }, "stall");
   if (classification === "RED") {
     $("safety-banner").classList.remove("hidden");
-    setReviewStatus("urgent", "A linked parent can see this now. Please find a trusted adult right away.");
-  } else {
-    setReviewStatus("review", "This went to your linked parent so a real grown-up can help with care.");
+    setReviewStatus("urgent", "Please get a trusted adult right now. You matter, and this is bigger than an app.");
   }
   return saveMessage(stall, "stall", classification, "local", stallClientId).then(function() {
     return sendToQueue(text, classification);

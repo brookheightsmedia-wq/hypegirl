@@ -1,0 +1,99 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function userDoc(userId) {
+      return get(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function requesterProfile() {
+      return userDoc(request.auth.uid);
+    }
+
+    function requesterIsParent() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && requesterProfile().data.role == "parent";
+    }
+
+    function requesterFamilyCode() {
+      return requesterProfile().data.familyCode;
+    }
+
+    function parentCanSeeQueue() {
+      return requesterIsParent()
+        && (
+          (
+            resource.data.familyCode != null
+            && resource.data.familyCode == requesterFamilyCode()
+          )
+          || (
+            resource.data.familyCode == null
+            && resource.data.childName == requesterProfile().data.childName
+          )
+        );
+    }
+
+    function parentCanCreateReplyFor(userId) {
+      return requesterIsParent()
+        && request.resource.data.parentQueueId is string
+        && exists(/databases/$(database)/documents/parentQueue/$(request.resource.data.parentQueueId))
+        && get(/databases/$(database)/documents/parentQueue/$(request.resource.data.parentQueueId)).data.childId == userId
+        && (
+          get(/databases/$(database)/documents/parentQueue/$(request.resource.data.parentQueueId)).data.familyCode == requesterFamilyCode()
+          || (
+            get(/databases/$(database)/documents/parentQueue/$(request.resource.data.parentQueueId)).data.familyCode == null
+            && get(/databases/$(database)/documents/parentQueue/$(request.resource.data.parentQueueId)).data.childName == requesterProfile().data.childName
+          )
+        );
+    }
+
+    match /users/{userId} {
+      allow create: if ownUser(userId)
+        && request.resource.data.role in ["child", "parent"]
+        && request.resource.data.email is string
+        && request.resource.data.name is string;
+
+      allow read, update: if ownUser(userId);
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if ownUser(userId);
+
+        allow create: if ownUser(userId)
+          || (
+            parentCanCreateReplyFor(userId)
+            && request.resource.data.source == "parent"
+            && request.resource.data.sender == "hypeGirl"
+          );
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /parentQueue/{queueId} {
+      allow create: if signedIn()
+        && request.resource.data.childId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.classification in ["AMBER", "RED"];
+
+      allow read: if parentCanSeeQueue();
+
+      allow update: if parentCanSeeQueue()
+        && request.resource.data.status in ["pending", "handled", "responded"]
+        && request.resource.data.childId == resource.data.childId
+        && request.resource.data.familyCode == resource.data.familyCode
+        && request.resource.data.message == resource.data.message;
+
+      allow delete: if false;
+    }
+  }
+}

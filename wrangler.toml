@@ -1,0 +1,20 @@
+name = "hypegirl-api"
+main = "hypegirl-worker.js"
+compatibility_date = "2026-05-28"
+
+[vars]
+ALLOWED_ORIGIN = "*"
+ALERT_FROM = "Hype Girl <onboarding@resend.dev>"
+CLASSIFIER_MODEL = "claude-haiku-4-5-20251001"
+CHAT_MODEL = "claude-sonnet-4-6"
+
+# Required secrets:
+# wrangler secret put ANTHROPIC_API_KEY
+# wrangler secret put RESEND_API_KEY
+#
+# Optional Cloudflare Rate Limiting binding:
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "1001"
+# simple = { limit = 60, period = 60 }

@@ -14,6 +14,11 @@ body {
   font-family: "Nunito", Arial, sans-serif;
 }
 
+body.document-body {
+  display: block;
+  overflow-y: auto;
+}
+
 button,
 input,
 textarea,
@@ -390,8 +395,11 @@ button {
 }
 
 .document-page {
-  height: min(92vh, 840px);
-  overflow-y: auto;
+  height: auto;
+  min-height: calc(100vh - 32px);
+  max-height: none;
+  margin: 0 auto;
+  overflow: visible;
 }
 
 .document-page h1 {

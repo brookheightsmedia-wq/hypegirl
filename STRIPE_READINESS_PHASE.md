@@ -47,7 +47,7 @@ LIVE_STRIPE_PRICE_ID=price_1TcW2sKF7IYBssd4FylTeVZp
 
 ## Gate 3: Configure Live Billing Portal
 
-Status: Ready for approval
+Status: In progress
 
 Parents need to manage cards, cancellations, and subscription details without manual support.
 

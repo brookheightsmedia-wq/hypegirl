@@ -52,6 +52,7 @@ Install or use Wrangler, then set secrets:
 ```sh
 wrangler secret put ANTHROPIC_API_KEY
 wrangler secret put RESEND_API_KEY
+wrangler secret put STRIPE_SECRET_KEY
 ```
 
 Deploy:
@@ -61,6 +62,14 @@ wrangler deploy
 ```
 
 For production, set `ALLOWED_ORIGIN` in `wrangler.toml` to the exact site origin instead of `*`.
+
+To enable paid family plans, create a recurring Stripe Price and set:
+
+```sh
+wrangler secret put STRIPE_PRICE_ID
+```
+
+The parent Upgrade button creates a Stripe Checkout Session. The frontend already reads `familyPlans/{familyCode}` and unlocks unlimited messages when `status` is `active` or `trialing`. A Stripe webhook or trusted admin process should update that document after payment confirmation.
 
 ## Firebase
 
@@ -75,6 +84,7 @@ The app uses:
 - `users/{uid}`
 - `users/{uid}/messages/{messageId}`
 - `parentQueue/{queueId}`
+- `familyPlans/{familyCode}`
 
 Parent/child linking should use `familyCode`. The older child-name fallback remains in code only to avoid stranding existing test accounts.
 
@@ -87,6 +97,7 @@ Parent/child linking should use `familyCode`. The older child-name fallback rema
 - Local message rendering uses `clientId` plus Firestore document IDs to prevent duplicate chat bubbles.
 - The Worker should use `ALLOWED_ORIGIN=https://hypegirl.pages.dev` in production.
 - Parent queue items include recent conversation context so parents are not replying blind.
+- Billing status lives in `familyPlans/{familyCode}` so browsers can read plan state but cannot mark themselves paid.
 
 Before production, add:
 
@@ -96,3 +107,4 @@ Before production, add:
 - stronger Firebase custom-claim or server-side parent authorization
 - monitoring for Worker errors and classifier drift
 - a verified Resend sender domain instead of `onboarding@resend.dev`
+- Stripe webhook handling to mark family plans active, past due, or canceled automatically

@@ -28,6 +28,15 @@ service cloud.firestore {
       return requesterProfile().data.familyCode;
     }
 
+    function protectedBillingFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        "plan",
+        "subscriptionStatus",
+        "stripeCustomerId",
+        "stripeSubscriptionId"
+      ]);
+    }
+
     function parentCanSeeQueue() {
       return requesterIsParent()
         && (
@@ -62,7 +71,8 @@ service cloud.firestore {
         && request.resource.data.email is string
         && request.resource.data.name is string;
 
-      allow read, update: if ownUser(userId);
+      allow read: if ownUser(userId);
+      allow update: if ownUser(userId) && protectedBillingFieldsUnchanged();
       allow delete: if false;
 
       match /messages/{messageId} {
@@ -94,6 +104,21 @@ service cloud.firestore {
         && request.resource.data.message == resource.data.message;
 
       allow delete: if false;
+    }
+
+    match /familyPlans/{familyCode} {
+      allow create: if requesterIsParent()
+        && familyCode == requesterFamilyCode()
+        && request.resource.data.familyCode == familyCode
+        && request.resource.data.parentId == request.auth.uid
+        && request.resource.data.status == "free"
+        && request.resource.data.plan == "free";
+
+      allow read: if signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && resource.data.familyCode == requesterFamilyCode();
+
+      allow update, delete: if false;
     }
   }
 }

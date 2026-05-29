@@ -76,11 +76,13 @@ var state = {
   selectedAvatar: "HG",
   messageListener: null,
   queueListener: null,
+  familyPlanListener: null,
   renderedMessageIds: new Set(),
   renderedClientIds: new Set(),
   currentQueueItem: null,
   currentPreviewText: "",
   queueFilter: "all",
+  familyPlan: null,
   lastQueueRefresh: 0,
   sending: false
 };
@@ -136,13 +138,42 @@ function getUsage() {
   return usageByDay[todayKey()] || 0;
 }
 
+function hasUnlimitedPlan() {
+  var plan = state.familyPlan || {};
+  return plan.status === "active" || plan.status === "trialing";
+}
+
 function updateUsageUi() {
+  if (hasUnlimitedPlan()) {
+    $("usage-label").textContent = "Unlimited family plan active";
+    $("usage-fill").style.width = "100%";
+    $("upgrade-prompt").classList.add("hidden");
+    return;
+  }
+
   var used = getUsage();
   var pct = Math.min(100, Math.round((used / FREE_DAILY_LIMIT) * 100));
   var remaining = Math.max(0, FREE_DAILY_LIMIT - used);
   $("usage-label").textContent = used + " / " + FREE_DAILY_LIMIT + " free messages used today - " + remaining + " left until tomorrow";
   $("usage-fill").style.width = pct + "%";
   $("upgrade-prompt").classList.toggle("hidden", remaining > 0);
+}
+
+function updatePlanUi() {
+  var status = state.familyPlan && state.familyPlan.status ? state.familyPlan.status : "free";
+  var active = status === "active" || status === "trialing";
+  if ($("parent-plan-status")) {
+    $("parent-plan-status").textContent = active ? "Unlimited family plan" : "Free plan";
+  }
+  if ($("parent-plan-description")) {
+    $("parent-plan-description").textContent = active
+      ? "Unlimited daily chats are unlocked for this family."
+      : "Upgrade when you are ready to unlock unlimited daily chats for your family.";
+  }
+  if ($("parent-upgrade-button")) {
+    $("parent-upgrade-button").textContent = active ? "Active" : "Upgrade";
+    $("parent-upgrade-button").disabled = active;
+  }
 }
 
 function setReviewStatus(kind, text) {
@@ -220,7 +251,7 @@ function handleAuth(event) {
   }
 
   auth.createUserWithEmailAndPassword(email, password).then(function(cred) {
-    return db.collection("users").doc(cred.user.uid).set({
+    var profile = {
       name: name,
       email: email,
       role: state.selectedRole,
@@ -229,6 +260,19 @@ function handleAuth(event) {
       linked: Boolean(familyCode),
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       usageByDay: {}
+    };
+
+    return db.collection("users").doc(cred.user.uid).set(profile).then(function() {
+      if (state.selectedRole !== "parent" || !familyCode) return null;
+      return db.collection("familyPlans").doc(familyCode).set({
+        familyCode: familyCode,
+        parentId: cred.user.uid,
+        status: "free",
+        plan: "free",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function() {
+        return null;
+      });
     });
   }).catch(function(error) {
     showError("auth-error", error.message);
@@ -243,6 +287,10 @@ function stopListeners() {
   if (state.queueListener) {
     state.queueListener();
     state.queueListener = null;
+  }
+  if (state.familyPlanListener) {
+    state.familyPlanListener();
+    state.familyPlanListener = null;
   }
 }
 
@@ -266,6 +314,7 @@ auth.onAuthStateChanged(function(user) {
 
   if (!user) {
     showScreen("auth-screen");
+    state.familyPlan = null;
     return;
   }
 
@@ -277,6 +326,7 @@ auth.onAuthStateChanged(function(user) {
     }
     state.profile = doc.data();
     state.currentAvatar = state.profile.avatar || "HG";
+    loadFamilyPlan();
     if (state.profile.role === "parent") showParentApp();
     else showChildApp();
   }).catch(function(error) {
@@ -294,17 +344,48 @@ function showChildApp() {
   $("message-input").focus();
 }
 
+function loadFamilyPlan() {
+  state.familyPlan = null;
+  updatePlanUi();
+  var familyCode = state.profile && state.profile.familyCode;
+  if (!familyCode) {
+    updateUsageUi();
+    return;
+  }
+
+  state.familyPlanListener = db.collection("familyPlans").doc(familyCode).onSnapshot(function(doc) {
+    state.familyPlan = doc.exists ? doc.data() : { status: "free", plan: "free" };
+    updateUsageUi();
+    updatePlanUi();
+  }, function() {
+    state.familyPlan = { status: "free", plan: "free" };
+    updateUsageUi();
+    updatePlanUi();
+  });
+}
+
 function showParentApp() {
   showScreen("parent-screen");
   $("parent-subtitle").textContent = "Hey " + displayName() + ". Review, preview, and reply with care.";
   $("parent-family-code").value = state.profile.familyCode || "No code yet";
   $("parent-child-name").textContent = state.profile.childName || "Not set";
+  showCheckoutNotice();
   loadQueue();
 }
 
 function signOut() {
   stopListeners();
   auth.signOut();
+}
+
+function showCheckoutNotice() {
+  var params = new URLSearchParams(window.location.search);
+  var checkout = params.get("checkout");
+  if (checkout === "success") {
+    showError("parent-error", "Checkout complete. Your family plan will update as soon as payment is confirmed.");
+  } else if (checkout === "cancelled") {
+    showError("parent-error", "Checkout was cancelled. You can upgrade anytime.");
+  }
 }
 
 function renderTextWithBreaks(el, text) {
@@ -467,7 +548,7 @@ function handleMessage(event) {
   var text = $("message-input").value.trim();
   if (!text) return;
 
-  if (getUsage() >= FREE_DAILY_LIMIT) {
+  if (!hasUnlimitedPlan() && getUsage() >= FREE_DAILY_LIMIT) {
     $("upgrade-prompt").classList.remove("hidden");
     showError("chat-error", "For unlimited messages, ask your parent to upgrade HypeGirl.");
     return;
@@ -890,7 +971,7 @@ function wireEvents() {
     refreshQueue();
   });
   $("parent-upgrade-button").addEventListener("click", function() {
-    showError("parent-error", "Unlimited family plan checkout is coming next. For now, this is the upgrade path families will use.");
+    startUpgrade();
   });
 
   window.addEventListener("focus", refreshQueue);
@@ -921,6 +1002,53 @@ function copyFamilyCode() {
       setTimeout(function() { $("copy-family-code").textContent = "Copy"; }, 1200);
     }).catch(function() {});
   }
+}
+
+function startUpgrade() {
+  if (hasUnlimitedPlan()) return;
+  if (!state.profile || state.profile.role !== "parent") {
+    showError("parent-error", "Please sign in as a parent to upgrade.");
+    return;
+  }
+  if (!state.profile.familyCode) {
+    showError("parent-error", "Add a family code before upgrading.");
+    return;
+  }
+
+  var button = $("parent-upgrade-button");
+  setBusy(button, true, "Opening...");
+  showError("parent-error", "");
+
+  var baseUrl = window.location.origin + window.location.pathname;
+  ensureFamilyPlan().then(function() {
+    return workerFetch({
+      action: "create_checkout",
+      parentId: state.user.uid,
+      parentEmail: state.profile.email,
+      familyCode: state.profile.familyCode,
+      successUrl: baseUrl + "?checkout=success",
+      cancelUrl: baseUrl + "?checkout=cancelled"
+    });
+  }).then(function(data) {
+    if (!data.url) throw new Error("Checkout did not return a payment link.");
+    window.location.href = data.url;
+  }).catch(function(error) {
+    showError("parent-error", error.message || "Could not open checkout yet.");
+    setBusy(button, false);
+  });
+}
+
+function ensureFamilyPlan() {
+  if (!state.profile || !state.profile.familyCode) return Promise.resolve();
+  return db.collection("familyPlans").doc(state.profile.familyCode).set({
+    familyCode: state.profile.familyCode,
+    parentId: state.user.uid,
+    status: "free",
+    plan: "free",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(function() {
+    return null;
+  });
 }
 
 wireEvents();

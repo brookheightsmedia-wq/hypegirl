@@ -40,6 +40,10 @@ export default {
         return json(await sendAlert(body, env), 200, corsHeaders);
       }
 
+      if (body.action === "create_checkout") {
+        return json(await createCheckout(body, env), 200, corsHeaders);
+      }
+
       return json({ error: "Unknown action" }, 400, corsHeaders);
     } catch (err) {
       return json({ error: err.message || "Server error" }, err.status || 500, corsHeaders);
@@ -192,6 +196,71 @@ async function sendAlert(body, env) {
   }
 
   return { ok: true, email: emailData };
+}
+
+async function createCheckout(body, env) {
+  if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PRICE_ID) {
+    const err = new Error("Stripe checkout is not configured yet.");
+    err.status = 500;
+    throw err;
+  }
+
+  const parentEmail = String(body.parentEmail || "").slice(0, 254);
+  const parentId = String(body.parentId || "").slice(0, 128);
+  const familyCode = String(body.familyCode || "").slice(0, 64);
+  const successUrl = safeCheckoutUrl(body.successUrl, env.CHECKOUT_SUCCESS_URL);
+  const cancelUrl = safeCheckoutUrl(body.cancelUrl, env.CHECKOUT_CANCEL_URL);
+
+  if (!parentEmail || !parentEmail.includes("@")) {
+    const err = new Error("Parent email is required for checkout.");
+    err.status = 400;
+    throw err;
+  }
+
+  if (!familyCode) {
+    const err = new Error("Family code is required for checkout.");
+    err.status = 400;
+    throw err;
+  }
+
+  const params = new URLSearchParams();
+  params.set("mode", "subscription");
+  params.set("customer_email", parentEmail);
+  params.set("client_reference_id", familyCode);
+  params.set("line_items[0][price]", env.STRIPE_PRICE_ID);
+  params.set("line_items[0][quantity]", "1");
+  params.set("success_url", successUrl);
+  params.set("cancel_url", cancelUrl);
+  params.set("metadata[familyCode]", familyCode);
+  params.set("metadata[parentId]", parentId);
+  params.set("subscription_data[metadata][familyCode]", familyCode);
+  params.set("subscription_data[metadata][parentId]", parentId);
+
+  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + env.STRIPE_SECRET_KEY,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: params.toString()
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const err = new Error(data.error && data.error.message ? data.error.message : "Stripe checkout failed");
+    err.status = response.status;
+    throw err;
+  }
+
+  return { url: data.url, id: data.id };
+}
+
+function safeCheckoutUrl(value, fallback) {
+  const url = String(value || fallback || "https://hypegirl.pages.dev").slice(0, 500);
+  if (!url.startsWith("https://") && !url.startsWith("http://localhost")) {
+    return "https://hypegirl.pages.dev";
+  }
+  return url;
 }
 
 async function anthropic(env, payload) {

@@ -11,6 +11,8 @@ CHAT_MODEL = "claude-sonnet-4-6"
 # Required secrets:
 # wrangler secret put ANTHROPIC_API_KEY
 # wrangler secret put RESEND_API_KEY
+# wrangler secret put STRIPE_SECRET_KEY
+# wrangler secret put STRIPE_PRICE_ID
 #
 # Optional Cloudflare Rate Limiting binding:
 # [[unsafe.bindings]]

@@ -118,6 +118,7 @@ Run one real payment test with a real card.
 
 Checklist:
 
+- Use a fresh free family, or reset an old sandbox-upgraded test family before testing live billing.
 - Parent starts on free plan.
 - Parent clicks Upgrade.
 - Stripe Checkout opens.

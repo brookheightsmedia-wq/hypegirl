@@ -1204,7 +1204,11 @@ function openBillingPortal() {
     if (!data.url) throw new Error("Billing portal did not return a link.");
     window.location.href = data.url;
   }).catch(function(error) {
-    showError("parent-error", error.message || "Could not open billing portal yet.");
+    var message = error && error.message ? error.message : "Could not open billing portal yet.";
+    if (message.indexOf("No such customer") !== -1) {
+      message = "This family was upgraded in sandbox billing, so the live billing portal cannot manage it. Use a fresh free family for the live smoke test, or reset this test family's plan before upgrading live.";
+    }
+    showError("parent-error", message);
     setBusy(button, false);
   });
 }

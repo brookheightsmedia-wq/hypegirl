@@ -112,7 +112,7 @@ Safety checklist:
 
 ## Gate 6: Live Checkout Smoke Test
 
-Status: Ready for approval
+Status: In progress
 
 Run one real payment test with a real card.
 

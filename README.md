@@ -24,6 +24,7 @@ The product goal is not only "AI chat." It is a supportive chat experience where
 - `firestore.rules` - starter Firestore rules for child-owned messages and parent queue access.
 - `privacy.html` and `terms.html` - starter trust pages that should be lawyer-reviewed before production.
 - `BETA_OPERATIONS.md` - internal beta support, deletion, billing, and safety runbook.
+- `STRIPE_READINESS_PHASE.md` - approval-gated checklist for switching from sandbox to live Stripe.
 - `wrangler.toml` - Worker deployment config.
 
 ## Local Development

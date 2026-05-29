@@ -2,6 +2,7 @@ const DEFAULT_ALLOWED_ORIGIN = "https://hypegirl.pages.dev,https://subscription-
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001";
 const DEFAULT_CHAT_MODEL = "claude-sonnet-4-6";
+let firebaseJwksCache = { keys: null, expiresAt: 0 };
 
 export default {
   async fetch(request, env) {
@@ -25,11 +26,8 @@ export default {
       }
     }
 
-    if (!request.headers.get("Authorization")) {
-      return json({ error: "Missing Firebase auth token" }, 401, corsHeaders);
-    }
-
     try {
+      const auth = await verifyFirebaseAuth(request, env);
       await enforceRateLimit(request, env);
       const body = await request.json();
 
@@ -50,11 +48,11 @@ export default {
       }
 
       if (body.action === "create_checkout") {
-        return json(await createCheckout(body, env), 200, corsHeaders);
+        return json(await createCheckout(body, env, auth), 200, corsHeaders);
       }
 
       if (body.action === "create_billing_portal") {
-        return json(await createBillingPortal(body, env), 200, corsHeaders);
+        return json(await createBillingPortal(body, env, auth), 200, corsHeaders);
       }
 
       return json({ error: "Unknown action" }, 400, corsHeaders);
@@ -91,6 +89,118 @@ async function enforceRateLimit(request, env) {
     err.status = 429;
     throw err;
   }
+}
+
+async function verifyFirebaseAuth(request, env) {
+  const header = request.headers.get("Authorization") || "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    const err = new Error("Missing Firebase auth token");
+    err.status = 401;
+    throw err;
+  }
+  return verifyFirebaseIdToken(match[1], env);
+}
+
+async function verifyFirebaseIdToken(token, env) {
+  const projectId = env.FIREBASE_PROJECT_ID || "hypegirl-ff832";
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    const err = new Error("Invalid Firebase auth token");
+    err.status = 401;
+    throw err;
+  }
+
+  const header = base64UrlDecodeJson(parts[0]);
+  const payload = base64UrlDecodeJson(parts[1]);
+  if (header.alg !== "RS256" || !header.kid) {
+    const err = new Error("Invalid Firebase auth token");
+    err.status = 401;
+    throw err;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const issuer = "https://securetoken.google.com/" + projectId;
+  if (
+    payload.aud !== projectId ||
+    payload.iss !== issuer ||
+    !payload.sub ||
+    payload.exp <= now ||
+    payload.iat > now + 300
+  ) {
+    const err = new Error("Expired or invalid Firebase auth token");
+    err.status = 401;
+    throw err;
+  }
+
+  const jwks = await firebaseJwks();
+  const jwk = jwks.find((key) => key.kid === header.kid);
+  if (!jwk) {
+    const err = new Error("Unknown Firebase auth token key");
+    err.status = 401;
+    throw err;
+  }
+
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    jwk,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
+  const ok = await crypto.subtle.verify(
+    { name: "RSASSA-PKCS1-v1_5" },
+    key,
+    base64UrlDecodeBytes(parts[2]),
+    new TextEncoder().encode(parts[0] + "." + parts[1])
+  );
+  if (!ok) {
+    const err = new Error("Invalid Firebase auth token signature");
+    err.status = 401;
+    throw err;
+  }
+
+  return {
+    uid: payload.sub,
+    email: payload.email || "",
+    emailVerified: Boolean(payload.email_verified)
+  };
+}
+
+async function firebaseJwks() {
+  const now = Date.now();
+  if (firebaseJwksCache.keys && firebaseJwksCache.expiresAt > now) return firebaseJwksCache.keys;
+
+  const response = await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
+  const data = await response.json();
+  if (!response.ok || !Array.isArray(data.keys)) {
+    const err = new Error("Could not load Firebase token keys");
+    err.status = 503;
+    throw err;
+  }
+
+  const cacheControl = response.headers.get("Cache-Control") || "";
+  const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+  const maxAgeMs = maxAgeMatch ? Number(maxAgeMatch[1]) * 1000 : 3600000;
+  firebaseJwksCache = {
+    keys: data.keys,
+    expiresAt: now + Math.max(300000, maxAgeMs - 60000)
+  };
+  return firebaseJwksCache.keys;
+}
+
+function base64UrlDecodeJson(value) {
+  return JSON.parse(atob(base64UrlToBase64(value)));
+}
+
+function base64UrlDecodeBytes(value) {
+  const binary = atob(base64UrlToBase64(value));
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function base64UrlToBase64(value) {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  return base64.padEnd(base64.length + ((4 - base64.length % 4) % 4), "=");
 }
 
 async function classify(body, env) {
@@ -214,43 +324,42 @@ async function sendAlert(body, env) {
   return { ok: true, email: emailData };
 }
 
-async function createCheckout(body, env) {
+async function createCheckout(body, env, auth) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PRICE_ID) {
     const err = new Error("Stripe checkout is not configured yet.");
     err.status = 500;
     throw err;
   }
 
-  const parentEmail = String(body.parentEmail || "").slice(0, 254);
-  const parentId = String(body.parentId || "").slice(0, 128);
   const familyCode = String(body.familyCode || "").slice(0, 64);
   const successUrl = safeCheckoutUrl(body.successUrl, env.CHECKOUT_SUCCESS_URL);
   const cancelUrl = safeCheckoutUrl(body.cancelUrl, env.CHECKOUT_CANCEL_URL);
+  const profile = await requireParentProfile(auth, env);
 
-  if (!parentEmail || !parentEmail.includes("@")) {
+  if (!profile.email || !profile.email.includes("@")) {
     const err = new Error("Parent email is required for checkout.");
     err.status = 400;
     throw err;
   }
 
-  if (!familyCode) {
-    const err = new Error("Family code is required for checkout.");
-    err.status = 400;
+  if (!familyCode || familyCode !== profile.familyCode) {
+    const err = new Error("This checkout does not match your family code.");
+    err.status = 403;
     throw err;
   }
 
   const params = new URLSearchParams();
   params.set("mode", "subscription");
-  params.set("customer_email", parentEmail);
+  params.set("customer_email", profile.email);
   params.set("client_reference_id", familyCode);
   params.set("line_items[0][price]", env.STRIPE_PRICE_ID);
   params.set("line_items[0][quantity]", "1");
   params.set("success_url", successUrl);
   params.set("cancel_url", cancelUrl);
   params.set("metadata[familyCode]", familyCode);
-  params.set("metadata[parentId]", parentId);
+  params.set("metadata[parentId]", auth.uid);
   params.set("subscription_data[metadata][familyCode]", familyCode);
-  params.set("subscription_data[metadata][parentId]", parentId);
+  params.set("subscription_data[metadata][parentId]", auth.uid);
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
@@ -271,23 +380,50 @@ async function createCheckout(body, env) {
   return { url: data.url, id: data.id };
 }
 
-async function createBillingPortal(body, env) {
+async function createBillingPortal(body, env, auth) {
   if (!env.STRIPE_SECRET_KEY) {
     const err = new Error("Stripe billing portal is not configured yet.");
     err.status = 500;
     throw err;
   }
 
+  const profile = await requireParentProfile(auth, env);
+  const familyCode = String(body.familyCode || profile.familyCode || "").slice(0, 64);
+  if (!familyCode || familyCode !== profile.familyCode) {
+    const err = new Error("This billing portal does not match your family code.");
+    err.status = 403;
+    throw err;
+  }
+
+  const familyPlan = await readFirestoreDocument("familyPlans/" + encodeURIComponent(familyCode), env);
+  if (!familyPlan || !isActivePlan(familyPlan)) {
+    const err = new Error("No active family plan found for this account.");
+    err.status = 403;
+    throw err;
+  }
+
+  if (familyPlan.parentId && familyPlan.parentId !== auth.uid) {
+    const err = new Error("This family plan belongs to a different parent account.");
+    err.status = 403;
+    throw err;
+  }
+
   const customerId = String(body.customerId || "").slice(0, 128);
+  const planCustomerId = String(familyPlan.stripeCustomerId || "");
   const returnUrl = safeCheckoutUrl(body.returnUrl, env.CHECKOUT_SUCCESS_URL);
-  if (!customerId) {
+  if (!planCustomerId) {
     const err = new Error("Stripe customer is required for billing.");
     err.status = 400;
     throw err;
   }
+  if (customerId && customerId !== planCustomerId) {
+    const err = new Error("This Stripe customer does not match your family plan.");
+    err.status = 403;
+    throw err;
+  }
 
   const params = new URLSearchParams();
-  params.set("customer", customerId);
+  params.set("customer", planCustomerId);
   params.set("return_url", returnUrl);
 
   const response = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
@@ -315,6 +451,65 @@ function safeCheckoutUrl(value, fallback) {
     return "https://hypegirl.pages.dev";
   }
   return url;
+}
+
+async function requireParentProfile(auth, env) {
+  const profile = await readFirestoreDocument("users/" + encodeURIComponent(auth.uid), env);
+  if (!profile || profile.role !== "parent") {
+    const err = new Error("Please sign in as a parent to manage billing.");
+    err.status = 403;
+    throw err;
+  }
+  if (!profile.familyCode) {
+    const err = new Error("Add a family code before managing billing.");
+    err.status = 403;
+    throw err;
+  }
+  return profile;
+}
+
+function isActivePlan(plan) {
+  return plan && (plan.status === "active" || plan.status === "trialing");
+}
+
+async function readFirestoreDocument(path, env) {
+  const projectId = env.FIREBASE_PROJECT_ID || "hypegirl-ff832";
+  const token = await firebaseAccessToken(env);
+  const url = "https://firestore.googleapis.com/v1/projects/" + projectId +
+    "/databases/(default)/documents/" + path;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { "Authorization": "Bearer " + token }
+  });
+  const data = await response.json();
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const err = new Error(data.error && data.error.message ? data.error.message : "Could not read Firestore document");
+    err.status = response.status;
+    throw err;
+  }
+  return firestoreFields(data.fields || {});
+}
+
+function firestoreFields(fields) {
+  const result = {};
+  Object.keys(fields).forEach((key) => {
+    result[key] = firestoreValue(fields[key]);
+  });
+  return result;
+}
+
+function firestoreValue(value) {
+  if (!value || typeof value !== "object") return null;
+  if ("stringValue" in value) return value.stringValue;
+  if ("booleanValue" in value) return Boolean(value.booleanValue);
+  if ("integerValue" in value) return Number(value.integerValue);
+  if ("doubleValue" in value) return Number(value.doubleValue);
+  if ("timestampValue" in value) return value.timestampValue;
+  if ("nullValue" in value) return null;
+  if ("arrayValue" in value) return (value.arrayValue.values || []).map(firestoreValue);
+  if ("mapValue" in value) return firestoreFields(value.mapValue.fields || {});
+  return null;
 }
 
 async function handleStripeWebhook(request, env) {

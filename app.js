@@ -536,16 +536,9 @@ function setLoading(on) {
 
 function workerFetch(payload) {
   return state.user.getIdToken().then(function(token) {
-    var headers = {
+    return postWorker(payload, {
       "Content-Type": "application/json",
       "Authorization": "Bearer " + token
-    };
-
-    return postWorker(payload, headers).catch(function(error) {
-      if (error && error.name === "TypeError") {
-        return postWorker(payload, { "Content-Type": "application/json" });
-      }
-      throw error;
     });
   });
 }
@@ -1093,6 +1086,7 @@ function openBillingPortal() {
   workerFetch({
     action: "create_billing_portal",
     customerId: state.familyPlan.stripeCustomerId,
+    familyCode: state.profile.familyCode,
     returnUrl: baseUrl
   }).then(function(data) {
     if (!data.url) throw new Error("Billing portal did not return a link.");

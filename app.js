@@ -1006,12 +1006,14 @@ function wireEvents() {
   $("message-form").addEventListener("submit", handleMessage);
   $("child-signout").addEventListener("click", signOut);
   $("parent-signout").addEventListener("click", signOut);
+  $("parent-data-request").addEventListener("click", openDataRequest);
   $("parent-feedback").addEventListener("click", openBetaFeedback);
   $("copy-family-code").addEventListener("click", copyFamilyCode);
   $("avatar-button").addEventListener("click", openAvatarPicker);
   $("save-avatar").addEventListener("click", saveAvatar);
   $("avatar-upload").addEventListener("change", handleAvatarUpload);
   $("send-feedback").addEventListener("click", sendBetaFeedback);
+  $("send-data-request").addEventListener("click", sendDataRequest);
   $("preview-response").addEventListener("click", previewParentResponse);
   $("send-preview").addEventListener("click", function() { sendParentReply(true); });
   $("send-original").addEventListener("click", function() { sendParentReply(false); });
@@ -1100,6 +1102,49 @@ function sendBetaFeedback() {
     }, 1200);
   }).catch(function(error) {
     showError("feedback-error", error.message || "Could not send feedback yet.");
+  }).finally(function() {
+    setBusy(button, false);
+  });
+}
+
+function openDataRequest() {
+  $("data-request-message").value = "";
+  $("data-request-confirm").checked = false;
+  showError("data-request-error", "");
+  $("data-request-success").classList.add("hidden");
+  $("data-request-modal").classList.remove("hidden");
+  $("data-request-message").focus();
+}
+
+function sendDataRequest() {
+  if (!$("data-request-confirm").checked) {
+    showError("data-request-error", "Please confirm this is a deletion request for this family.");
+    return;
+  }
+
+  var button = $("send-data-request");
+  setBusy(button, true, "Sending...");
+  showError("data-request-error", "");
+  $("data-request-success").classList.add("hidden");
+
+  workerFetch({
+    action: "deletion_request",
+    message: $("data-request-message").value.trim(),
+    parentEmail: state.profile && state.profile.email ? state.profile.email : "",
+    parentName: state.profile && state.profile.name ? state.profile.name : "",
+    familyCode: state.profile && state.profile.familyCode ? state.profile.familyCode : "",
+    page: window.location.href,
+    userAgent: navigator.userAgent
+  }).then(function() {
+    $("data-request-success").classList.remove("hidden");
+    $("data-request-message").value = "";
+    $("data-request-confirm").checked = false;
+    setTimeout(function() {
+      closeModal("data-request-modal");
+      $("data-request-success").classList.add("hidden");
+    }, 1500);
+  }).catch(function(error) {
+    showError("data-request-error", error.message || "Could not send the data request yet.");
   }).finally(function() {
     setBusy(button, false);
   });

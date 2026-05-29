@@ -148,6 +148,7 @@
           <span id="parent-subtitle">Messages waiting for your personal touch</span>
         </div>
         <div class="parent-header-actions">
+          <button id="parent-data-request" class="text-button subtle" type="button">Data request</button>
           <button id="parent-feedback" class="text-button subtle" type="button">Beta feedback</button>
           <button id="parent-signout" class="icon-text-button" type="button">Sign out</button>
         </div>
@@ -237,6 +238,33 @@
       </div>
     </div>
 
+    <div id="data-request-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="data-request-title">
+      <div class="sheet">
+        <header class="sheet-header">
+          <button class="round-button close-modal" type="button" data-close="data-request-modal" aria-label="Close">x</button>
+          <h2 id="data-request-title">Data Request</h2>
+          <span></span>
+        </header>
+
+        <p class="sheet-copy">Request deletion of this family's beta data. We will confirm by email before removing accounts, messages, queue items, and billing plan records.</p>
+
+        <label class="field">
+          <span>Anything we should know?</span>
+          <textarea id="data-request-message" maxlength="1000" rows="5" placeholder="Example: Please delete our beta test family data."></textarea>
+        </label>
+
+        <div class="check-row">
+          <input id="data-request-confirm" type="checkbox">
+          <label for="data-request-confirm">I understand this sends a deletion request for this family account.</label>
+        </div>
+
+        <div id="data-request-error" class="error" role="alert"></div>
+        <div id="data-request-success" class="success-pill hidden">Request sent. We will follow up by email.</div>
+
+        <button id="send-data-request" class="primary-button" type="button">Send Data Request</button>
+      </div>
+    </div>
+
     <div id="respond-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="respond-title">
       <div class="sheet respond-sheet">
         <header class="sheet-header">
@@ -286,6 +314,6 @@
     </div>
   </main>
 
-  <script src="./app.js?v=20260529-feedback" defer></script>
+  <script src="./app.js?v=20260529-data-request" defer></script>
 </body>
 </html>

@@ -106,6 +106,23 @@ function showError(id, message) {
   el.classList.add("show");
 }
 
+function friendlyAuthError(error) {
+  var code = error && error.code ? error.code : "";
+  if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-login-credentials") {
+    return "That email or password did not match. Try again or reset your password.";
+  }
+  if (code === "auth/email-already-in-use") {
+    return "That email already has an account. Try signing in instead.";
+  }
+  if (code === "auth/weak-password") {
+    return "Please choose a stronger password with at least 6 characters.";
+  }
+  if (code === "auth/invalid-email") {
+    return "Please enter a valid email address.";
+  }
+  return error && error.message ? error.message : "Something went wrong. Please try again.";
+}
+
 function setBusy(button, busy, label) {
   if (!button) return;
   if (!button.dataset.idleText) button.dataset.idleText = button.textContent;
@@ -173,6 +190,13 @@ function updatePlanUi() {
   if ($("parent-upgrade-button")) {
     $("parent-upgrade-button").textContent = active ? "Active" : "Upgrade";
     $("parent-upgrade-button").disabled = active;
+    $("parent-upgrade-button").classList.toggle("hidden", active);
+  }
+  if ($("parent-billing-button")) {
+    $("parent-billing-button").classList.toggle("hidden", !active);
+  }
+  if (active && $("parent-error") && $("parent-error").textContent.indexOf("Checkout complete") === 0) {
+    showError("parent-error", "");
   }
 }
 
@@ -206,6 +230,7 @@ function syncAuthFields() {
   $("invite-field").classList.toggle("hidden", !signup);
   $("auth-submit").textContent = signup ? "Create Account" : "Sign In";
   $("toggle-auth").textContent = signup ? "Already have an account? Sign in" : "Need an account? Sign up";
+  $("forgot-password").classList.toggle("hidden", signup);
   $("auth-family-code").placeholder = state.selectedRole === "parent" ? "Optional, generated if blank" : "Code from your parent";
 }
 
@@ -231,7 +256,7 @@ function handleAuth(event) {
 
   if (state.authMode === "signin") {
     auth.signInWithEmailAndPassword(email, password).catch(function(error) {
-      showError("auth-error", error.message);
+      showError("auth-error", friendlyAuthError(error));
     });
     return;
   }
@@ -267,7 +292,25 @@ function handleAuth(event) {
       return createFreeFamilyPlanIfMissing(familyCode, cred.user.uid);
     });
   }).catch(function(error) {
-    showError("auth-error", error.message);
+    showError("auth-error", friendlyAuthError(error));
+  });
+}
+
+function sendPasswordReset() {
+  showError("auth-error", "");
+  var email = $("auth-email").value.trim();
+  if (!email) {
+    showError("auth-error", "Enter your email first, then tap Forgot password.");
+    return;
+  }
+  var button = $("forgot-password");
+  setBusy(button, true, "Sending...");
+  auth.sendPasswordResetEmail(email).then(function() {
+    showError("auth-error", "Password reset sent. Check your email.");
+  }).catch(function(error) {
+    showError("auth-error", friendlyAuthError(error));
+  }).finally(function() {
+    setBusy(button, false);
   });
 }
 
@@ -373,7 +416,7 @@ function signOut() {
 function showCheckoutNotice() {
   var params = new URLSearchParams(window.location.search);
   var checkout = params.get("checkout");
-  if (checkout === "success") {
+  if (checkout === "success" && !hasUnlimitedPlan()) {
     showError("parent-error", "Checkout complete. Your family plan will update as soon as payment is confirmed.");
   } else if (checkout === "cancelled") {
     showError("parent-error", "Checkout was cancelled. You can upgrade anytime.");
@@ -965,6 +1008,10 @@ function wireEvents() {
   $("parent-upgrade-button").addEventListener("click", function() {
     startUpgrade();
   });
+  $("parent-billing-button").addEventListener("click", function() {
+    openBillingPortal();
+  });
+  $("forgot-password").addEventListener("click", sendPasswordReset);
 
   window.addEventListener("focus", refreshQueue);
   document.addEventListener("visibilitychange", function() {
@@ -1026,6 +1073,30 @@ function startUpgrade() {
     window.location.href = data.url;
   }).catch(function(error) {
     showError("parent-error", error.message || "Could not open checkout yet.");
+    setBusy(button, false);
+  });
+}
+
+function openBillingPortal() {
+  if (!hasUnlimitedPlan()) return;
+  if (!state.familyPlan || !state.familyPlan.stripeCustomerId) {
+    showError("parent-error", "Billing is active, but the Stripe customer is still syncing.");
+    return;
+  }
+  var button = $("parent-billing-button");
+  setBusy(button, true, "Opening...");
+  showError("parent-error", "");
+
+  var baseUrl = window.location.origin + window.location.pathname;
+  workerFetch({
+    action: "create_billing_portal",
+    customerId: state.familyPlan.stripeCustomerId,
+    returnUrl: baseUrl
+  }).then(function(data) {
+    if (!data.url) throw new Error("Billing portal did not return a link.");
+    window.location.href = data.url;
+  }).catch(function(error) {
+    showError("parent-error", error.message || "Could not open billing portal yet.");
     setBusy(button, false);
   });
 }

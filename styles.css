@@ -202,6 +202,11 @@ button {
   font-weight: 900;
 }
 
+.text-button.subtle {
+  color: #8f6a94;
+  font-size: 12px;
+}
+
 .danger {
   color: #b91c1c;
 }
@@ -659,6 +664,72 @@ button {
   line-height: 1.25;
 }
 
+.onboarding-card {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0e4f8;
+  background: #fdf7fb;
+}
+
+.onboarding-card > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #ff3d8a;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.onboarding-card ol {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  counter-reset: steps;
+}
+
+.onboarding-card li {
+  position: relative;
+  min-height: 36px;
+  padding-left: 34px;
+  color: #1a0030;
+}
+
+.onboarding-card li::before {
+  counter-increment: steps;
+  content: counter(steps);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8fbf6;
+  color: #0b6f68;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.onboarding-card strong,
+.onboarding-card small {
+  display: block;
+}
+
+.onboarding-card strong {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.onboarding-card small {
+  color: #7c557d;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 .upgrade-card {
   flex-shrink: 0;
   display: flex;
@@ -846,6 +917,12 @@ button {
   border-color: transparent;
   color: #fff;
   background: linear-gradient(135deg, #ff3d8a, #e040d0);
+}
+
+.small-button.secondary {
+  border-color: #b7e8df;
+  color: #0b6f68;
+  background: #e8fbf6;
 }
 
 .modal {

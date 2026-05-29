@@ -57,6 +57,7 @@
 
         <button id="auth-submit" class="primary-button" type="submit">Create Account</button>
         <button id="toggle-auth" class="text-button" type="button">Already have an account? Sign in</button>
+        <button id="forgot-password" class="text-button subtle hidden" type="button">Forgot password?</button>
       </form>
 
       <p class="consent-copy">
@@ -154,6 +155,15 @@
         </div>
       </section>
 
+      <section class="onboarding-card" aria-label="Parent setup steps">
+        <span>Setup</span>
+        <ol>
+          <li><strong>Copy family code</strong><small>Give this to your child when they create their account.</small></li>
+          <li><strong>Child joins</strong><small>They choose "I'm a Girl" and enter this code.</small></li>
+          <li><strong>Review only what matters</strong><small>AMBER and RED messages appear here for care.</small></li>
+        </ol>
+      </section>
+
       <section class="upgrade-card">
         <div>
           <span>HypeGirl Family</span>
@@ -161,6 +171,7 @@
           <p id="parent-plan-description">Unlimited messages + parent safety dashboard. $7.99/month or $59.99/year.</p>
         </div>
         <button id="parent-upgrade-button" class="small-button primary" type="button">Upgrade</button>
+        <button id="parent-billing-button" class="small-button secondary hidden" type="button">Manage</button>
       </section>
 
       <div id="parent-error" class="error bar-error" role="alert"></div>
@@ -227,6 +238,6 @@
     </div>
   </main>
 
-  <script src="./app.js?v=20260528-preview-fallback" defer></script>
+  <script src="./app.js?v=20260529-phase1" defer></script>
 </body>
 </html>

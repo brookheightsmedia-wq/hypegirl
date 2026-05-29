@@ -1,4 +1,4 @@
-const DEFAULT_ALLOWED_ORIGIN = "*";
+const DEFAULT_ALLOWED_ORIGIN = "https://hypegirl.pages.dev,https://subscription-checkout.hypegirl.pages.dev";
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001";
 const DEFAULT_CHAT_MODEL = "claude-sonnet-4-6";
@@ -53,6 +53,10 @@ export default {
         return json(await createCheckout(body, env), 200, corsHeaders);
       }
 
+      if (body.action === "create_billing_portal") {
+        return json(await createBillingPortal(body, env), 200, corsHeaders);
+      }
+
       return json({ error: "Unknown action" }, 400, corsHeaders);
     } catch (err) {
       return json({ error: err.message || "Server error" }, err.status || 500, corsHeaders);
@@ -62,7 +66,10 @@ export default {
 
 function buildCorsHeaders(env, origin) {
   const allowed = env.ALLOWED_ORIGIN || DEFAULT_ALLOWED_ORIGIN;
-  const allowOrigin = allowed === "*" || allowed === origin ? (origin || allowed) : allowed;
+  const allowedOrigins = allowed.split(",").map((item) => item.trim()).filter(Boolean);
+  const allowOrigin = allowedOrigins.includes("*") || allowedOrigins.includes(origin)
+    ? (origin || allowedOrigins[0])
+    : allowedOrigins[0];
   return {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": allowOrigin,
@@ -257,6 +264,44 @@ async function createCheckout(body, env) {
   const data = await response.json();
   if (!response.ok) {
     const err = new Error(data.error && data.error.message ? data.error.message : "Stripe checkout failed");
+    err.status = response.status;
+    throw err;
+  }
+
+  return { url: data.url, id: data.id };
+}
+
+async function createBillingPortal(body, env) {
+  if (!env.STRIPE_SECRET_KEY) {
+    const err = new Error("Stripe billing portal is not configured yet.");
+    err.status = 500;
+    throw err;
+  }
+
+  const customerId = String(body.customerId || "").slice(0, 128);
+  const returnUrl = safeCheckoutUrl(body.returnUrl, env.CHECKOUT_SUCCESS_URL);
+  if (!customerId) {
+    const err = new Error("Stripe customer is required for billing.");
+    err.status = 400;
+    throw err;
+  }
+
+  const params = new URLSearchParams();
+  params.set("customer", customerId);
+  params.set("return_url", returnUrl);
+
+  const response = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + env.STRIPE_SECRET_KEY,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: params.toString()
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const err = new Error(data.error && data.error.message ? data.error.message : "Stripe billing portal failed");
     err.status = response.status;
     throw err;
   }

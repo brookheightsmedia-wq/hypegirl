@@ -64,7 +64,11 @@ Deploy:
 wrangler deploy
 ```
 
-For production, set `ALLOWED_ORIGIN` in `wrangler.toml` to the exact site origin instead of `*`.
+For production, set `ALLOWED_ORIGIN` to the exact site origins. The current launch-safe value is:
+
+```text
+https://hypegirl.pages.dev,https://subscription-checkout.hypegirl.pages.dev
+```
 
 To enable paid family plans, create a recurring Stripe Price and set:
 
@@ -72,7 +76,9 @@ To enable paid family plans, create a recurring Stripe Price and set:
 wrangler secret put STRIPE_PRICE_ID
 ```
 
-The parent Upgrade button creates a Stripe Checkout Session. The frontend already reads `familyPlans/{familyCode}` and unlocks unlimited messages when `status` is `active` or `trialing`. A Stripe webhook or trusted admin process should update that document after payment confirmation.
+The parent Upgrade button creates a Stripe Checkout Session. The frontend reads `familyPlans/{familyCode}` and unlocks unlimited messages when `status` is `active` or `trialing`. The Stripe webhook updates that document after payment confirmation.
+
+Active subscribers can open Stripe Billing Portal from Hype HQ. Configure the portal in Stripe before relying on it for live payments.
 
 Stripe webhook endpoint:
 
@@ -110,7 +116,7 @@ Parent/child linking should use `familyCode`. The older child-name fallback rema
 - Parent replies are previewed before sending.
 - User and AI text are rendered with text nodes instead of raw `innerHTML`.
 - Local message rendering uses `clientId` plus Firestore document IDs to prevent duplicate chat bubbles.
-- The Worker should use `ALLOWED_ORIGIN=https://hypegirl.pages.dev` in production.
+- The Worker should use exact `ALLOWED_ORIGIN` values in production.
 - Parent queue items include recent conversation context so parents are not replying blind.
 - Billing status lives in `familyPlans/{familyCode}` so browsers can read plan state but cannot mark themselves paid.
 
@@ -122,4 +128,4 @@ Before production, add:
 - stronger Firebase custom-claim or server-side parent authorization
 - monitoring for Worker errors and classifier drift
 - a verified Resend sender domain instead of `onboarding@resend.dev`
-- Stripe webhook handling to mark family plans active, past due, or canceled automatically
+- live Stripe products, webhook, and Billing Portal configuration

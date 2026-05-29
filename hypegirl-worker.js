@@ -353,8 +353,10 @@ async function activateFamilyPlan(session, env) {
   if (!familyCode) return;
 
   await updateFamilyPlan(familyCode, {
+    familyCode,
     status: "active",
     plan: "family",
+    parentId: String(session.metadata && session.metadata.parentId || ""),
     stripeCustomerId: String(session.customer || ""),
     stripeSubscriptionId: String(session.subscription || ""),
     lastCheckoutSessionId: String(session.id || "")
@@ -366,8 +368,10 @@ async function syncSubscriptionStatus(subscription, env) {
   const familyCode = String(subscription.metadata.familyCode);
   const status = normalizeSubscriptionStatus(subscription.status);
   await updateFamilyPlan(familyCode, {
+    familyCode,
     status,
     plan: status === "active" || status === "trialing" ? "family" : "free",
+    parentId: String(subscription.metadata.parentId || ""),
     stripeCustomerId: String(subscription.customer || ""),
     stripeSubscriptionId: String(subscription.id || "")
   }, env);

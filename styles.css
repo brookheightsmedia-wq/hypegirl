@@ -398,6 +398,31 @@ button {
   line-height: 1.55;
 }
 
+.policy-card {
+  gap: 12px;
+}
+
+.policy-kicker,
+.policy-date {
+  margin: 0;
+  color: #ff3d8a;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.policy-date {
+  color: #8f6a94;
+  text-transform: none;
+}
+
+.policy-card h2 {
+  margin: 8px 0 0;
+  color: #1a0030;
+  font-size: 16px;
+  font-weight: 900;
+}
+
 .chat-header,
 .parent-header {
   flex-shrink: 0;
@@ -750,6 +775,13 @@ button {
 
 .parent-header {
   justify-content: space-between;
+}
+
+.parent-header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .parent-header > div {

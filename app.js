@@ -8,6 +8,7 @@ var FB_CONFIG = {
 };
 
 var WORKER = "https://hypegirl-api.brookheightsmedia.workers.dev";
+var FEEDBACK_EMAIL = "brookheightsmedia@gmail.com";
 var FREE_DAILY_LIMIT = 10;
 var PRESET_AVATARS = ["HG", "BEST", "SPARK", "STAR", "JOY", "BRAVE", "COOL", "GLOW", "YES", "SUN"];
 var SYSTEM = [
@@ -1006,6 +1007,7 @@ function wireEvents() {
   $("message-form").addEventListener("submit", handleMessage);
   $("child-signout").addEventListener("click", signOut);
   $("parent-signout").addEventListener("click", signOut);
+  $("parent-feedback").addEventListener("click", openBetaFeedback);
   $("copy-family-code").addEventListener("click", copyFamilyCode);
   $("avatar-button").addEventListener("click", openAvatarPicker);
   $("save-avatar").addEventListener("click", saveAvatar);
@@ -1059,6 +1061,17 @@ function copyFamilyCode() {
       setTimeout(function() { $("copy-family-code").textContent = "Copy"; }, 1200);
     }).catch(function() {});
   }
+}
+
+function openBetaFeedback() {
+  var subject = encodeURIComponent("HypeGirl beta feedback");
+  var body = encodeURIComponent([
+    "What happened?",
+    "",
+    "Parent email: " + (state.profile && state.profile.email ? state.profile.email : ""),
+    "Family code: " + (state.profile && state.profile.familyCode ? state.profile.familyCode : "")
+  ].join("\n"));
+  window.location.href = "mailto:" + FEEDBACK_EMAIL + "?subject=" + subject + "&body=" + body;
 }
 
 function startUpgrade() {

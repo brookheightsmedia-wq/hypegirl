@@ -6,27 +6,27 @@ Each gate should be approved before moving to the next one.
 
 ## Gate 1: Decide Live Offer
 
-Status: Pending approval
+Status: Approved May 29, 2026
 
 Decide the paid offer that will appear in the app and Stripe.
 
 Checklist:
 
-- Confirm monthly price.
-- Confirm whether yearly billing launches now or later.
-- Confirm product name: `HypeGirl Family`.
-- Confirm plan promise: unlimited HypeGirl messages for the family plus parent safety dashboard.
-- Confirm whether launch uses a trial, coupon, or no discount.
+- Monthly price: `$7.99/month`.
+- Yearly billing: not included in first live launch.
+- Product name: `HypeGirl Family`.
+- Plan promise: unlimited HypeGirl messages for the family plus parent safety dashboard.
+- Trial/coupon: no trial or coupon for the first live smoke test.
 
-Recommended beta launch offer:
+Approved beta launch offer:
 
 - Monthly: `$7.99/month`
-- Yearly: wait unless you are ready to support annual refunds/cancellations
-- Trial: no trial for first live test, because sandbox already tested the flow
+- Yearly: wait until annual billing support/refund expectations are clearer
+- Trial: none for first live test, because sandbox already tested the flow
 
 ## Gate 2: Create Live Stripe Product And Price
 
-Status: Pending Gate 1
+Status: Ready for approval
 
 Create these in Stripe live mode, not sandbox mode.
 
@@ -171,7 +171,7 @@ Before inviting paying beta families:
 Use this section as we proceed.
 
 ```text
-Gate 1 approved:
+Gate 1 approved: May 29, 2026 - $7.99/month, monthly only, no trial/coupon
 Gate 2 approved:
 Gate 3 approved:
 Gate 4 approved:
@@ -180,4 +180,3 @@ Gate 6 approved:
 Gate 7 approved:
 Gate 8 approved:
 ```
-

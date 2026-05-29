@@ -26,7 +26,7 @@ Approved beta launch offer:
 
 ## Gate 2: Create Live Stripe Product And Price
 
-Status: In progress
+Status: Approved May 29, 2026
 
 Create these in Stripe live mode, not sandbox mode.
 
@@ -42,12 +42,12 @@ Checklist:
 Output needed:
 
 ```text
-LIVE_STRIPE_PRICE_ID=
+LIVE_STRIPE_PRICE_ID=price_1TcW2sKF7IYBssd4FylTeVZp
 ```
 
 ## Gate 3: Configure Live Billing Portal
 
-Status: Pending Gate 2
+Status: Ready for approval
 
 Parents need to manage cards, cancellations, and subscription details without manual support.
 
@@ -172,7 +172,7 @@ Use this section as we proceed.
 
 ```text
 Gate 1 approved: May 29, 2026 - $7.99/month, monthly only, no trial/coupon
-Gate 2 approved:
+Gate 2 approved: May 29, 2026 - live monthly price price_1TcW2sKF7IYBssd4FylTeVZp
 Gate 3 approved:
 Gate 4 approved:
 Gate 5 approved:

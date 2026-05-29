@@ -395,11 +395,17 @@ button {
 }
 
 .document-page {
+  width: 100%;
+  max-width: 680px;
   height: auto;
   min-height: calc(100vh - 32px);
   max-height: none;
   margin: 0 auto;
   overflow: visible;
+  display: block;
+  background: #fff;
+  border-radius: 32px;
+  box-shadow: 0 24px 64px rgba(180, 40, 140, 0.15);
 }
 
 .document-page h1 {
@@ -1307,9 +1313,19 @@ button {
     background: #fff;
   }
 
+  body.document-body {
+    padding: 0;
+    background: #f8f0ff;
+  }
+
   #app {
     height: 100vh;
     max-height: none;
+    border-radius: 0;
+  }
+
+  .document-page {
+    min-height: 100vh;
     border-radius: 0;
   }
 

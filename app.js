@@ -243,7 +243,23 @@ function syncAuthFields() {
 function toggleAuthMode() {
   state.authMode = state.authMode === "signup" ? "signin" : "signup";
   showError("auth-error", "");
+  revealAuthForm();
   syncAuthFields();
+}
+
+function revealAuthForm() {
+  $("auth-form").classList.remove("hidden");
+  setTimeout(function() {
+    $("auth-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
+function startLandingFlow(role, mode) {
+  state.selectedRole = role;
+  state.authMode = mode || "signup";
+  setRole(role);
+  revealAuthForm();
+  $("auth-email").focus();
 }
 
 function handleAuth(event) {
@@ -982,6 +998,9 @@ function handleAvatarUpload(event) {
 function wireEvents() {
   $("auth-form").addEventListener("submit", handleAuth);
   $("toggle-auth").addEventListener("click", toggleAuthMode);
+  $("landing-parent").addEventListener("click", function() { startLandingFlow("parent", "signup"); });
+  $("landing-child").addEventListener("click", function() { startLandingFlow("child", "signup"); });
+  $("landing-signin").addEventListener("click", function() { startLandingFlow("parent", "signin"); });
   $("tab-child").addEventListener("click", function() { setRole("child"); });
   $("tab-parent").addEventListener("click", function() { setRole("parent"); });
   $("message-form").addEventListener("submit", handleMessage);

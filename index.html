@@ -15,14 +15,37 @@
 <body>
   <main id="app">
     <section id="auth-screen" class="screen auth-screen">
-      <div class="hero">
-        <div class="hero-dots"></div>
-        <div class="app-icon" aria-hidden="true">HG</div>
-        <h1>Hype Girl</h1>
-        <p>Your AI bestie, with a parent safety loop.</p>
-      </div>
+      <section class="landing">
+        <div class="landing-topline">HypeGirl for families</div>
+        <h1>Confidence, homework help, and safe chat for tween girls.</h1>
+        <p class="landing-copy">HypeGirl gives girls a warm AI bestie for everyday support, studying, and age-appropriate facts, with parents looped in when messages need real care.</p>
 
-      <form id="auth-form" class="auth-card">
+        <div class="landing-preview" aria-label="HypeGirl chat preview">
+          <div class="preview-header">
+            <span class="preview-avatar">HG</span>
+            <div>
+              <strong>Hype Girl</strong>
+              <small>Active</small>
+            </div>
+          </div>
+          <div class="preview-bubble child-preview">help me study for science</div>
+          <div class="preview-bubble hype-preview">yes bestie. let's do a mini quiz and make it easy to remember.</div>
+        </div>
+
+        <div class="landing-points">
+          <div><strong>Homework help</strong><span>Hints, examples, quizzes, and kid-safe facts.</span></div>
+          <div><strong>Parent safety loop</strong><span>AMBER and RED moments go to Hype HQ.</span></div>
+          <div><strong>Family plan</strong><span>Free daily chats, then $7.99/month for unlimited.</span></div>
+        </div>
+
+        <div class="landing-actions">
+          <button id="landing-parent" class="primary-button" type="button">Start as a Parent</button>
+          <button id="landing-child" class="secondary-button" type="button">Join with Family Code</button>
+          <button id="landing-signin" class="text-button" type="button">Already have an account? Sign in</button>
+        </div>
+      </section>
+
+      <form id="auth-form" class="auth-card landing-form hidden">
         <div class="role-tabs" role="tablist" aria-label="Account type">
           <button type="button" class="role-tab active" id="tab-child" data-role="child">I'm a Girl</button>
           <button type="button" class="role-tab" id="tab-parent" data-role="parent">I'm a Parent</button>
@@ -62,7 +85,7 @@
 
       <p class="consent-copy">
         Hype Girl is here for everyday confidence and support. If something sounds really unsafe or too big for an app, Hype Girl may bring in real grown-up support.
-        <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a>
+        <a href="./privacy.html">Privacy</a> &middot; <a href="./terms.html">Terms</a>
       </p>
     </section>
 
@@ -238,6 +261,6 @@
     </div>
   </main>
 
-  <script src="./app.js?v=20260529-homework-help" defer></script>
+  <script src="./app.js?v=20260529-landing" defer></script>
 </body>
 </html>

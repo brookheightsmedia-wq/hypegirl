@@ -105,7 +105,147 @@ button {
 
 .auth-screen {
   overflow-y: auto;
-  background: #f8f0ff;
+  background: #fff8fc;
+}
+
+.landing {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 20px 18px;
+  background: #fff8fc;
+}
+
+.landing-topline {
+  color: #ff3d8a;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.landing h1 {
+  margin: 0;
+  color: #1a0030;
+  font-size: clamp(28px, 8vw, 38px);
+  line-height: 1.04;
+  font-weight: 900;
+}
+
+.landing-copy {
+  margin: 0;
+  color: #4b244c;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.landing-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1.5px solid #f0d0e8;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(180,40,140,.09);
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-avatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ff3d8a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.preview-header strong,
+.preview-header small {
+  display: block;
+}
+
+.preview-header strong {
+  color: #1a0030;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.preview-header small {
+  color: #22a56c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.preview-bubble {
+  max-width: 88%;
+  padding: 10px 13px;
+  border-radius: 18px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.child-preview {
+  align-self: flex-end;
+  background: #8b4ecb;
+  border-bottom-right-radius: 4px;
+}
+
+.hype-preview {
+  align-self: flex-start;
+  background: #ff5b9b;
+  border-bottom-left-radius: 4px;
+}
+
+.landing-points {
+  display: grid;
+  gap: 8px;
+}
+
+.landing-points div {
+  padding: 12px;
+  border: 1.5px solid #f0d0e8;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.landing-points strong,
+.landing-points span {
+  display: block;
+}
+
+.landing-points strong {
+  color: #1a0030;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.landing-points span {
+  margin-top: 2px;
+  color: #7c557d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.landing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.landing-form {
+  scroll-margin-top: 14px;
 }
 
 .auth-card {

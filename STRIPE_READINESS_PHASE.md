@@ -26,7 +26,7 @@ Approved beta launch offer:
 
 ## Gate 2: Create Live Stripe Product And Price
 
-Status: Ready for approval
+Status: In progress
 
 Create these in Stripe live mode, not sandbox mode.
 

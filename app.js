@@ -8,7 +8,6 @@ var FB_CONFIG = {
 };
 
 var WORKER = "https://hypegirl-api.brookheightsmedia.workers.dev";
-var FEEDBACK_EMAIL = "brookheightsmedia@gmail.com";
 var FREE_DAILY_LIMIT = 10;
 var PRESET_AVATARS = ["HG", "BEST", "SPARK", "STAR", "JOY", "BRAVE", "COOL", "GLOW", "YES", "SUN"];
 var SYSTEM = [
@@ -1012,6 +1011,7 @@ function wireEvents() {
   $("avatar-button").addEventListener("click", openAvatarPicker);
   $("save-avatar").addEventListener("click", saveAvatar);
   $("avatar-upload").addEventListener("change", handleAvatarUpload);
+  $("send-feedback").addEventListener("click", sendBetaFeedback);
   $("preview-response").addEventListener("click", previewParentResponse);
   $("send-preview").addEventListener("click", function() { sendParentReply(true); });
   $("send-original").addEventListener("click", function() { sendParentReply(false); });
@@ -1064,14 +1064,45 @@ function copyFamilyCode() {
 }
 
 function openBetaFeedback() {
-  var subject = encodeURIComponent("HypeGirl beta feedback");
-  var body = encodeURIComponent([
-    "What happened?",
-    "",
-    "Parent email: " + (state.profile && state.profile.email ? state.profile.email : ""),
-    "Family code: " + (state.profile && state.profile.familyCode ? state.profile.familyCode : "")
-  ].join("\n"));
-  window.location.href = "mailto:" + FEEDBACK_EMAIL + "?subject=" + subject + "&body=" + body;
+  $("feedback-message").value = "";
+  showError("feedback-error", "");
+  $("feedback-success").classList.add("hidden");
+  $("feedback-modal").classList.remove("hidden");
+  $("feedback-message").focus();
+}
+
+function sendBetaFeedback() {
+  var message = $("feedback-message").value.trim();
+  if (!message) {
+    showError("feedback-error", "Tell me what happened first.");
+    return;
+  }
+
+  var button = $("send-feedback");
+  setBusy(button, true, "Sending...");
+  showError("feedback-error", "");
+  $("feedback-success").classList.add("hidden");
+
+  workerFetch({
+    action: "feedback",
+    message: message,
+    parentEmail: state.profile && state.profile.email ? state.profile.email : "",
+    parentName: state.profile && state.profile.name ? state.profile.name : "",
+    familyCode: state.profile && state.profile.familyCode ? state.profile.familyCode : "",
+    page: window.location.href,
+    userAgent: navigator.userAgent
+  }).then(function() {
+    $("feedback-success").classList.remove("hidden");
+    $("feedback-message").value = "";
+    setTimeout(function() {
+      closeModal("feedback-modal");
+      $("feedback-success").classList.add("hidden");
+    }, 1200);
+  }).catch(function(error) {
+    showError("feedback-error", error.message || "Could not send feedback yet.");
+  }).finally(function() {
+    setBusy(button, false);
+  });
 }
 
 function startUpgrade() {

@@ -47,6 +47,10 @@ export default {
         return json(await sendAlert(body, env), 200, corsHeaders);
       }
 
+      if (body.action === "feedback") {
+        return json(await sendFeedback(body, env, auth), 200, corsHeaders);
+      }
+
       if (body.action === "create_checkout") {
         return json(await createCheckout(body, env, auth), 200, corsHeaders);
       }
@@ -317,6 +321,59 @@ async function sendAlert(body, env) {
   const emailData = await emailRes.json();
   if (!emailRes.ok) {
     const err = new Error(emailData.message || "Email failed");
+    err.status = emailRes.status;
+    throw err;
+  }
+
+  return { ok: true, email: emailData };
+}
+
+async function sendFeedback(body, env, auth) {
+  const profile = await requireParentProfile(auth, env);
+  const message = String(body.message || "").trim().slice(0, 1000);
+  if (!message) {
+    const err = new Error("Feedback message is required.");
+    err.status = 400;
+    throw err;
+  }
+
+  if (!env.RESEND_API_KEY) return { ok: false, skipped: "Missing RESEND_API_KEY" };
+
+  const parentEmail = String(profile.email || body.parentEmail || "").slice(0, 254);
+  const parentName = String(profile.name || body.parentName || "Parent").slice(0, 100);
+  const familyCode = String(profile.familyCode || body.familyCode || "").slice(0, 64);
+  const page = String(body.page || "").slice(0, 500);
+  const userAgent = String(body.userAgent || "").slice(0, 500);
+  const to = String(env.FEEDBACK_TO || "brookheightsmedia@gmail.com").slice(0, 254);
+  const html = [
+    "<h2>HypeGirl beta feedback</h2>",
+    "<p><strong>Parent:</strong> " + escapeHtml(parentName) + "</p>",
+    "<p><strong>Email:</strong> " + escapeHtml(parentEmail) + "</p>",
+    "<p><strong>Family code:</strong> " + escapeHtml(familyCode) + "</p>",
+    "<p><strong>Page:</strong> " + escapeHtml(page) + "</p>",
+    "<p><strong>User agent:</strong> " + escapeHtml(userAgent) + "</p>",
+    "<hr>",
+    "<p>" + escapeHtml(message).replace(/\n/g, "<br>") + "</p>"
+  ].join("");
+
+  const emailRes = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + env.RESEND_API_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: env.ALERT_FROM || "Hype Girl <onboarding@resend.dev>",
+      to: [to],
+      reply_to: parentEmail && parentEmail.includes("@") ? parentEmail : undefined,
+      subject: "HypeGirl beta feedback from " + parentName,
+      html
+    })
+  });
+
+  const emailData = await emailRes.json();
+  if (!emailRes.ok) {
+    const err = new Error(emailData.message || "Feedback email failed");
     err.status = emailRes.status;
     throw err;
   }

@@ -366,6 +366,16 @@ button {
   display: block;
 }
 
+.success-pill {
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: #e8fbf6;
+  color: #0b6f68;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
 .consent-copy {
   padding: 0 28px 24px;
   color: #8f6a94;
@@ -380,8 +390,8 @@ button {
 }
 
 .document-page {
-  height: auto;
-  min-height: min(92vh, 760px);
+  height: min(92vh, 840px);
+  overflow-y: auto;
 }
 
 .document-page h1 {
@@ -400,6 +410,8 @@ button {
 
 .policy-card {
   gap: 12px;
+  height: auto;
+  min-height: 100%;
 }
 
 .policy-kicker,
@@ -1097,6 +1109,11 @@ button {
   background: #e8fbf6;
 }
 
+.small-button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
 .modal {
   position: absolute;
   inset: 0;
@@ -1124,6 +1141,14 @@ button {
   margin: 0;
   font-size: 18px;
   font-weight: 900;
+}
+
+.sheet-copy {
+  margin: 0;
+  color: #7c557d;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .sheet-header {

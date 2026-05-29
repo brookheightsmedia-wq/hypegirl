@@ -215,6 +215,28 @@
       </div>
     </div>
 
+    <div id="feedback-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+      <div class="sheet">
+        <header class="sheet-header">
+          <button class="round-button close-modal" type="button" data-close="feedback-modal" aria-label="Close">x</button>
+          <h2 id="feedback-title">Beta Feedback</h2>
+          <span></span>
+        </header>
+
+        <p class="sheet-copy">Tell us what felt confusing, broken, or surprisingly good. This goes straight to HypeGirl support.</p>
+
+        <label class="field">
+          <span>What happened?</span>
+          <textarea id="feedback-message" maxlength="1000" rows="6" placeholder="Example: I clicked Manage and it opened fine, but..."></textarea>
+        </label>
+
+        <div id="feedback-error" class="error" role="alert"></div>
+        <div id="feedback-success" class="success-pill hidden">Feedback sent. Thank you.</div>
+
+        <button id="send-feedback" class="primary-button" type="button">Send Feedback</button>
+      </div>
+    </div>
+
     <div id="respond-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="respond-title">
       <div class="sheet respond-sheet">
         <header class="sheet-header">
@@ -264,6 +286,6 @@
     </div>
   </main>
 
-  <script src="./app.js?v=20260529-landing" defer></script>
+  <script src="./app.js?v=20260529-feedback" defer></script>
 </body>
 </html>

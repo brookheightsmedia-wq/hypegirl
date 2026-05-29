@@ -163,12 +163,12 @@ function updatePlanUi() {
   var status = state.familyPlan && state.familyPlan.status ? state.familyPlan.status : "free";
   var active = status === "active" || status === "trialing";
   if ($("parent-plan-status")) {
-    $("parent-plan-status").textContent = active ? "Unlimited family plan" : "Free plan";
+    $("parent-plan-status").textContent = active ? "HypeGirl Family active" : "Free plan";
   }
   if ($("parent-plan-description")) {
     $("parent-plan-description").textContent = active
-      ? "Unlimited daily chats are unlocked for this family."
-      : "Upgrade when you are ready to unlock unlimited daily chats for your family.";
+      ? "Unlimited messages are unlocked for this family."
+      : "Unlimited messages + parent safety dashboard. $7.99/month or $59.99/year.";
   }
   if ($("parent-upgrade-button")) {
     $("parent-upgrade-button").textContent = active ? "Active" : "Upgrade";
@@ -550,7 +550,7 @@ function handleMessage(event) {
 
   if (!hasUnlimitedPlan() && getUsage() >= FREE_DAILY_LIMIT) {
     $("upgrade-prompt").classList.remove("hidden");
-    showError("chat-error", "For unlimited messages, ask your parent to upgrade HypeGirl.");
+    showError("chat-error", "You can come back tomorrow, or ask a grown-up about HypeGirl Family.");
     return;
   }
 

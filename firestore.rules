@@ -39,16 +39,8 @@ service cloud.firestore {
 
     function parentCanSeeQueue() {
       return requesterIsParent()
-        && (
-          (
-            resource.data.familyCode != null
-            && resource.data.familyCode == requesterFamilyCode()
-          )
-          || (
-            resource.data.familyCode == null
-            && resource.data.childName == requesterProfile().data.childName
-          )
-        );
+        && resource.data.status == "pending"
+        && resource.data.familyCode == requesterFamilyCode();
     }
 
     function parentCanCreateReplyFor(userId) {

@@ -715,7 +715,7 @@ function loadQueue() {
 
 function queueQuery() {
   var familyCode = state.profile.familyCode || null;
-  var ref = db.collection("parentQueue");
+  var ref = db.collection("parentQueue").where("status", "==", "pending");
   if (familyCode) ref = ref.where("familyCode", "==", familyCode);
   else ref = ref.where("childName", "==", state.profile.childName || "");
   return ref;

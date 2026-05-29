@@ -66,7 +66,7 @@ https://hypegirl.pages.dev/
 
 ## Gate 4: Configure Live Webhook
 
-Status: Ready for approval
+Status: Approved May 29, 2026
 
 The webhook is what turns a successful payment into an active HypeGirl family plan.
 
@@ -85,12 +85,12 @@ Events:
 Output needed:
 
 ```text
-LIVE_STRIPE_WEBHOOK_SECRET=
+LIVE_STRIPE_WEBHOOK_SECRET=received; do not store in repo
 ```
 
 ## Gate 5: Add Live Cloudflare Secrets
 
-Status: Pending Gates 2 and 4
+Status: Ready for approval
 
 Replace Stripe sandbox secrets with live Stripe secrets only when ready.
 
@@ -174,7 +174,7 @@ Use this section as we proceed.
 Gate 1 approved: May 29, 2026 - $7.99/month, monthly only, no trial/coupon
 Gate 2 approved: May 29, 2026 - live monthly price price_1TcW2sKF7IYBssd4FylTeVZp
 Gate 3 approved: May 29, 2026 - live Billing Portal configured with card updates, cancellation, and return URL
-Gate 4 approved:
+Gate 4 approved: May 29, 2026 - live webhook created and signing secret received privately
 Gate 5 approved:
 Gate 6 approved:
 Gate 7 approved:

@@ -90,16 +90,16 @@ LIVE_STRIPE_WEBHOOK_SECRET=received; do not store in repo
 
 ## Gate 5: Add Live Cloudflare Secrets
 
-Status: Ready for approval
+Status: Approved May 29, 2026
 
 Replace Stripe sandbox secrets with live Stripe secrets only when ready.
 
 Cloudflare Worker secrets:
 
 ```text
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PRICE_ID=price_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_SECRET_KEY=live key configured in Cloudflare; do not store in repo
+STRIPE_PRICE_ID=price_1TcW2sKF7IYBssd4FylTeVZp
+STRIPE_WEBHOOK_SECRET=live signing secret configured in Cloudflare; do not store in repo
 ```
 
 Safety checklist:
@@ -112,7 +112,7 @@ Safety checklist:
 
 ## Gate 6: Live Checkout Smoke Test
 
-Status: Pending Gate 5
+Status: Ready for approval
 
 Run one real payment test with a real card.
 
@@ -175,7 +175,7 @@ Gate 1 approved: May 29, 2026 - $7.99/month, monthly only, no trial/coupon
 Gate 2 approved: May 29, 2026 - live monthly price price_1TcW2sKF7IYBssd4FylTeVZp
 Gate 3 approved: May 29, 2026 - live Billing Portal configured with card updates, cancellation, and return URL
 Gate 4 approved: May 29, 2026 - live webhook created and signing secret received privately
-Gate 5 approved:
+Gate 5 approved: May 29, 2026 - live Stripe key, live price id, and live webhook secret configured in Cloudflare
 Gate 6 approved:
 Gate 7 approved:
 Gate 8 approved:

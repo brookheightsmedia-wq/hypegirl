@@ -53,6 +53,9 @@ Install or use Wrangler, then set secrets:
 wrangler secret put ANTHROPIC_API_KEY
 wrangler secret put RESEND_API_KEY
 wrangler secret put STRIPE_SECRET_KEY
+wrangler secret put STRIPE_WEBHOOK_SECRET
+wrangler secret put FIREBASE_CLIENT_EMAIL
+wrangler secret put FIREBASE_PRIVATE_KEY
 ```
 
 Deploy:
@@ -70,6 +73,18 @@ wrangler secret put STRIPE_PRICE_ID
 ```
 
 The parent Upgrade button creates a Stripe Checkout Session. The frontend already reads `familyPlans/{familyCode}` and unlocks unlimited messages when `status` is `active` or `trialing`. A Stripe webhook or trusted admin process should update that document after payment confirmation.
+
+Stripe webhook endpoint:
+
+```text
+https://hypegirl-api.brookheightsmedia.workers.dev/stripe-webhook
+```
+
+Listen for:
+
+- `checkout.session.completed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
 
 ## Firebase
 

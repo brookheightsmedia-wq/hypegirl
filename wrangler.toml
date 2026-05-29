@@ -13,6 +13,9 @@ CHAT_MODEL = "claude-sonnet-4-6"
 # wrangler secret put RESEND_API_KEY
 # wrangler secret put STRIPE_SECRET_KEY
 # wrangler secret put STRIPE_PRICE_ID
+# wrangler secret put STRIPE_WEBHOOK_SECRET
+# wrangler secret put FIREBASE_CLIENT_EMAIL
+# wrangler secret put FIREBASE_PRIVATE_KEY
 #
 # Optional Cloudflare Rate Limiting binding:
 # [[unsafe.bindings]]

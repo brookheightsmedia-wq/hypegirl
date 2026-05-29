@@ -7,6 +7,7 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const corsHeaders = buildCorsHeaders(env, origin);
+    const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
@@ -14,6 +15,14 @@ export default {
 
     if (request.method !== "POST") {
       return json({ error: "Method not allowed" }, 405, corsHeaders);
+    }
+
+    if (url.pathname === "/stripe-webhook") {
+      try {
+        return json(await handleStripeWebhook(request, env), 200, corsHeaders);
+      } catch (err) {
+        return json({ error: err.message || "Webhook error" }, err.status || 500, corsHeaders);
+      }
     }
 
     if (!request.headers.get("Authorization")) {
@@ -261,6 +270,224 @@ function safeCheckoutUrl(value, fallback) {
     return "https://hypegirl.pages.dev";
   }
   return url;
+}
+
+async function handleStripeWebhook(request, env) {
+  if (!env.STRIPE_WEBHOOK_SECRET) {
+    const err = new Error("Stripe webhook is not configured yet.");
+    err.status = 500;
+    throw err;
+  }
+
+  const signature = request.headers.get("Stripe-Signature") || "";
+  const payload = await request.text();
+  const ok = await verifyStripeSignature(payload, signature, env.STRIPE_WEBHOOK_SECRET);
+  if (!ok) {
+    const err = new Error("Invalid Stripe webhook signature.");
+    err.status = 400;
+    throw err;
+  }
+
+  const event = JSON.parse(payload);
+  if (event.type === "checkout.session.completed") {
+    await activateFamilyPlan(event.data && event.data.object, env);
+  }
+
+  if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+    await syncSubscriptionStatus(event.data && event.data.object, env);
+  }
+
+  return { received: true };
+}
+
+async function verifyStripeSignature(payload, header, secret) {
+  const parts = header.split(",").reduce((acc, item) => {
+    const idx = item.indexOf("=");
+    if (idx > -1) {
+      const key = item.slice(0, idx);
+      const value = item.slice(idx + 1);
+      if (key === "v1") {
+        acc.v1.push(value);
+      } else {
+        acc[key] = value;
+      }
+    }
+    return acc;
+  }, { v1: [] });
+
+  if (!parts.t || parts.v1.length === 0) return false;
+  const age = Math.abs(Math.floor(Date.now() / 1000) - Number(parts.t));
+  if (!Number.isFinite(age) || age > 300) return false;
+
+  const signedPayload = parts.t + "." + payload;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedPayload));
+  const expected = hex(digest);
+  return parts.v1.some((signature) => timingSafeEqual(expected, signature));
+}
+
+function hex(buffer) {
+  return Array.from(new Uint8Array(buffer)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+async function activateFamilyPlan(session, env) {
+  if (!session) return;
+  const familyCode = session.metadata && session.metadata.familyCode
+    ? String(session.metadata.familyCode)
+    : String(session.client_reference_id || "");
+  if (!familyCode) return;
+
+  await updateFamilyPlan(familyCode, {
+    status: "active",
+    plan: "family",
+    stripeCustomerId: String(session.customer || ""),
+    stripeSubscriptionId: String(session.subscription || ""),
+    lastCheckoutSessionId: String(session.id || "")
+  }, env);
+}
+
+async function syncSubscriptionStatus(subscription, env) {
+  if (!subscription || !subscription.metadata || !subscription.metadata.familyCode) return;
+  const familyCode = String(subscription.metadata.familyCode);
+  const status = normalizeSubscriptionStatus(subscription.status);
+  await updateFamilyPlan(familyCode, {
+    status,
+    plan: status === "active" || status === "trialing" ? "family" : "free",
+    stripeCustomerId: String(subscription.customer || ""),
+    stripeSubscriptionId: String(subscription.id || "")
+  }, env);
+}
+
+function normalizeSubscriptionStatus(status) {
+  if (status === "active" || status === "trialing") return status;
+  if (status === "past_due" || status === "unpaid" || status === "incomplete") return "past_due";
+  return "canceled";
+}
+
+async function updateFamilyPlan(familyCode, values, env) {
+  const projectId = env.FIREBASE_PROJECT_ID || "hypegirl-ff832";
+  const token = await firebaseAccessToken(env);
+  const encodedFamilyCode = encodeURIComponent(familyCode);
+  const mask = Object.keys(values).map((key) => "updateMask.fieldPaths=" + encodeURIComponent(key)).join("&");
+  const url = "https://firestore.googleapis.com/v1/projects/" + projectId +
+    "/databases/(default)/documents/familyPlans/" + encodedFamilyCode + "?" + mask;
+
+  const fields = {};
+  Object.keys(values).forEach((key) => {
+    fields[key] = { stringValue: values[key] };
+  });
+  fields.updatedAt = { timestampValue: new Date().toISOString() };
+
+  const response = await fetch(url + "&updateMask.fieldPaths=updatedAt", {
+    method: "PATCH",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ fields })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const err = new Error(data.error && data.error.message ? data.error.message : "Could not update family plan");
+    err.status = response.status;
+    throw err;
+  }
+  return data;
+}
+
+async function firebaseAccessToken(env) {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    const err = new Error("Firebase service account is not configured yet.");
+    err.status = 500;
+    throw err;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const assertion = await signJwt({
+    alg: "RS256",
+    typ: "JWT"
+  }, {
+    iss: env.FIREBASE_CLIENT_EMAIL,
+    scope: "https://www.googleapis.com/auth/datastore",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600
+  }, env.FIREBASE_PRIVATE_KEY);
+
+  const params = new URLSearchParams();
+  params.set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");
+  params.set("assertion", assertion);
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString()
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    const err = new Error(data.error_description || data.error || "Could not authorize Firebase service account");
+    err.status = response.status;
+    throw err;
+  }
+  return data.access_token;
+}
+
+async function signJwt(header, payload, privateKeyPem) {
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const input = encodedHeader + "." + encodedPayload;
+  const key = await importPrivateKey(privateKeyPem);
+  const signature = await crypto.subtle.sign(
+    { name: "RSASSA-PKCS1-v1_5" },
+    key,
+    new TextEncoder().encode(input)
+  );
+  return input + "." + base64UrlEncodeBytes(signature);
+}
+
+async function importPrivateKey(privateKeyPem) {
+  const normalized = privateKeyPem.replace(/\\n/g, "\n");
+  const pem = normalized
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s/g, "");
+  const raw = Uint8Array.from(atob(pem), (char) => char.charCodeAt(0));
+  return crypto.subtle.importKey(
+    "pkcs8",
+    raw,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+}
+
+function base64UrlEncode(value) {
+  return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlEncodeBytes(value) {
+  let binary = "";
+  const bytes = new Uint8Array(value);
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 async function anthropic(env, payload) {

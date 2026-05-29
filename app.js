@@ -328,7 +328,8 @@ function avatarNode() {
 function addBubble(message, sender, options) {
   options = options || {};
   var messages = $("messages");
-  var who = sender === "child" ? "child" : (sender === "stall" ? "stall" : "hype");
+  var classification = (message.classification || options.classification || "").toUpperCase();
+  var who = sender === "child" ? "child" : (sender === "stall" && classification === "RED" ? "stall" : "hype");
   var wrap = document.createElement("article");
   wrap.className = "message " + who;
 
@@ -517,7 +518,7 @@ function handleFlaggedMessage(text, classification) {
   var stall = pool[Math.floor(Math.random() * pool.length)];
   var stallClientId = clientId("stall");
   state.renderedClientIds.add(stallClientId);
-  addBubble({ text: stall, sender: "stall", clientId: stallClientId, createdAt: new Date() }, "stall");
+  addBubble({ text: stall, sender: "stall", classification: classification, clientId: stallClientId, createdAt: new Date() }, "stall");
   if (classification === "RED") {
     $("safety-banner").classList.remove("hidden");
     setReviewStatus("urgent", "Please get a trusted adult right now. You matter, and this is bigger than an app.");

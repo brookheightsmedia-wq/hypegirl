@@ -47,7 +47,7 @@ LIVE_STRIPE_PRICE_ID=price_1TcW2sKF7IYBssd4FylTeVZp
 
 ## Gate 3: Configure Live Billing Portal
 
-Status: In progress
+Status: Approved May 29, 2026
 
 Parents need to manage cards, cancellations, and subscription details without manual support.
 
@@ -66,7 +66,7 @@ https://hypegirl.pages.dev/
 
 ## Gate 4: Configure Live Webhook
 
-Status: Pending Gate 2
+Status: Ready for approval
 
 The webhook is what turns a successful payment into an active HypeGirl family plan.
 
@@ -173,7 +173,7 @@ Use this section as we proceed.
 ```text
 Gate 1 approved: May 29, 2026 - $7.99/month, monthly only, no trial/coupon
 Gate 2 approved: May 29, 2026 - live monthly price price_1TcW2sKF7IYBssd4FylTeVZp
-Gate 3 approved:
+Gate 3 approved: May 29, 2026 - live Billing Portal configured with card updates, cancellation, and return URL
 Gate 4 approved:
 Gate 5 approved:
 Gate 6 approved:

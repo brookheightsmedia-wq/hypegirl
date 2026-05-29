@@ -264,15 +264,7 @@ function handleAuth(event) {
 
     return db.collection("users").doc(cred.user.uid).set(profile).then(function() {
       if (state.selectedRole !== "parent" || !familyCode) return null;
-      return db.collection("familyPlans").doc(familyCode).set({
-        familyCode: familyCode,
-        parentId: cred.user.uid,
-        status: "free",
-        plan: "free",
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(function() {
-        return null;
-      });
+      return createFreeFamilyPlanIfMissing(familyCode, cred.user.uid);
     });
   }).catch(function(error) {
     showError("auth-error", error.message);
@@ -1040,12 +1032,20 @@ function startUpgrade() {
 
 function ensureFamilyPlan() {
   if (!state.profile || !state.profile.familyCode) return Promise.resolve();
-  return db.collection("familyPlans").doc(state.profile.familyCode).set({
-    familyCode: state.profile.familyCode,
-    parentId: state.user.uid,
-    status: "free",
-    plan: "free",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  return createFreeFamilyPlanIfMissing(state.profile.familyCode, state.user.uid);
+}
+
+function createFreeFamilyPlanIfMissing(familyCode, parentId) {
+  var ref = db.collection("familyPlans").doc(familyCode);
+  return ref.get().then(function(doc) {
+    if (doc.exists) return null;
+    return ref.set({
+      familyCode: familyCode,
+      parentId: parentId,
+      status: "free",
+      plan: "free",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
   }).catch(function() {
     return null;
   });

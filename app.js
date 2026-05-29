@@ -188,11 +188,13 @@ function updatePlanUi() {
       : "Unlimited messages + parent safety dashboard. $7.99/month or $59.99/year.";
   }
   if ($("parent-upgrade-button")) {
-    $("parent-upgrade-button").textContent = active ? "Active" : "Upgrade";
-    $("parent-upgrade-button").disabled = active;
+    $("parent-upgrade-button").textContent = "Upgrade";
+    $("parent-upgrade-button").disabled = false;
     $("parent-upgrade-button").classList.toggle("hidden", active);
   }
   if ($("parent-billing-button")) {
+    $("parent-billing-button").textContent = "Manage";
+    $("parent-billing-button").disabled = false;
     $("parent-billing-button").classList.toggle("hidden", !active);
   }
   if (active && $("parent-error") && $("parent-error").textContent.indexOf("Checkout complete") === 0) {

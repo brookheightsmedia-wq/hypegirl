@@ -112,7 +112,7 @@ Safety checklist:
 
 ## Gate 6: Live Checkout Smoke Test
 
-Status: In progress
+Status: Paused May 30, 2026 - pending real payment smoke test
 
 Run one real payment test with a real card.
 
@@ -135,10 +135,11 @@ Important:
 - Stripe test cards will not work in live mode.
 - Use a real payment method.
 - Refund/cancel after the smoke test if desired.
+- This gate is intentionally paused until a real live payment test is approved.
 
 ## Gate 7: Live Rollback Plan
 
-Status: Pending Gate 5
+Status: Approved May 30, 2026
 
 If live checkout breaks, use this rollback order.
 
@@ -154,9 +155,17 @@ Emergency fallback:
 
 - Hide the Upgrade button in the app until billing is fixed.
 
+Rollback decision tree:
+
+1. If Checkout will not open, check Worker logs first.
+2. If Checkout opens but payment/webhook does not activate the plan, check Stripe webhook delivery logs.
+3. If live billing needs to be paused immediately, remove or replace `STRIPE_PRICE_ID` in Cloudflare.
+4. If a specific deploy introduced the issue, revert the app commit and let Cloudflare Pages redeploy.
+5. If a live customer was charged incorrectly, cancel/refund in Stripe before changing Firestore manually.
+
 ## Gate 8: Beta Launch Billing Notes
 
-Status: Pending Gate 6
+Status: Approved May 30, 2026
 
 Before inviting paying beta families:
 
@@ -166,6 +175,9 @@ Before inviting paying beta families:
 - Confirm support inbox is monitored.
 - Confirm Stripe dashboard is in live mode when checking real customers.
 - Confirm a manual refund/cancel process exists.
+- Confirm Gate 6 remains unresolved until a real payment smoke test is completed.
+- Start paying beta with one trusted family first, not a broad invite.
+- Tell beta parents that billing is live and that support can help cancel/refund early beta issues.
 
 ## Approval Log
 
@@ -177,7 +189,7 @@ Gate 2 approved: May 29, 2026 - live monthly price price_1TcW2sKF7IYBssd4FylTeVZ
 Gate 3 approved: May 29, 2026 - live Billing Portal configured with card updates, cancellation, and return URL
 Gate 4 approved: May 29, 2026 - live webhook created and signing secret received privately
 Gate 5 approved: May 29, 2026 - live Stripe key, live price id, and live webhook secret configured in Cloudflare
-Gate 6 approved:
-Gate 7 approved:
-Gate 8 approved:
+Gate 6 approved: Paused May 30, 2026 - come back for real payment smoke test
+Gate 7 approved: May 30, 2026 - rollback plan documented
+Gate 8 approved: May 30, 2026 - beta billing notes documented
 ```
